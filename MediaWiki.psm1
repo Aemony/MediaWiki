@@ -3174,6 +3174,106 @@ function Get-MWLink
 }
 #endregion
 
+#region Get-MWNamespace
+function Get-MWNamespace
+{
+  [CmdletBinding(DefaultParameterSetName = 'All')]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'NamespaceName', Position=0)]
+    [AllowEmptyString()] # Main namespace has no name
+    [Alias('Title', 'Identity', 'Name')]
+    [string]$NamespaceName,
+
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'NamespaceID', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('ID')]
+    [int32]$NamespaceID, # int32 cuz namespace IDs can be negative
+
+    [Parameter(ParameterSetName = 'All')]
+    [switch]$All,
+
+    # Negative namespaces (Media and Special) are special and seldom used/supported through the API.
+    [switch]$IncludeNegative,
+    
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    $NamespaceName = $NamespaceName.Replace(':', '')
+
+    if ($null -ne $script:Cache.Namespace)
+    {
+      $LocalCopy = $null
+
+      if ($IncludeNegative)
+      { $LocalCopy = $script:Cache.Namespace }
+      else 
+      { $LocalCopy = $script:Cache.Namespace | Where-Object ID -ge 0 }
+
+          if ($PSBoundParameters.ContainsKey('NamespaceName'))
+      { return ($LocalCopy | Where-Object Name -EQ $NamespaceName | Copy-Object) }
+      elseif ($PSBoundParameters.ContainsKey('NamespaceID'))
+      { return ($LocalCopy | Where-Object ID   -EQ $NamespaceID   | Copy-Object) }
+      else
+      { return ($LocalCopy                                        | Copy-Object) }
+    }
+
+    return $null
+  }
+
+  End { }
+}
+#endregion
+
+#region Get-MWNamespacePage
+function Get-MWNamespacePage
+{
+  [CmdletBinding()]
+  param
+  (
+    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, Position=0)]
+    [string]$Name,
+
+    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
+    [string]$ResultSize = 1000,
+
+    [switch]$JSON
+  )
+
+  Begin {
+    if ($ResultSize -eq 'Unlimited')
+    { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
+  }
+
+  Process {
+    $Parameters  = @{
+      Namespace  = $Name
+      ResultSize = $ResultSize
+      JSON       = $JSON
+    }
+
+    Find-MWPage @Parameters
+  }
+
+  End { }
+}
+#endregion
+
 #region Get-MWPage
 function Get-MWPage
 {
@@ -3283,106 +3383,6 @@ function Get-MWPage
 
     return $PSCustomObject
   }
-}
-#endregion
-
-#region Get-MWNamespace
-function Get-MWNamespace
-{
-  [CmdletBinding(DefaultParameterSetName = 'All')]
-  param (
-    <#
-      Core parameters
-    #>
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'NamespaceName', Position=0)]
-    [AllowEmptyString()] # Main namespace has no name
-    [Alias('Title', 'Identity', 'Name')]
-    [string]$NamespaceName,
-
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'NamespaceID', Position=0)]
-    [ValidateNotNullOrEmpty()]
-    [Alias('ID')]
-    [int32]$NamespaceID, # int32 cuz namespace IDs can be negative
-
-    [Parameter(ParameterSetName = 'All')]
-    [switch]$All,
-
-    # Negative namespaces (Media and Special) are special and seldom used/supported through the API.
-    [switch]$IncludeNegative,
-    
-    <#
-      Debug
-    #>
-    [switch]$JSON
-  )
-
-  Begin { }
-
-  Process
-  {
-    if ($null -eq $script:Config.URI)
-    {
-      Write-Warning "Not connected to a MediaWiki instance."
-      return $null
-    }
-
-    $NamespaceName = $NamespaceName.Replace(':', '')
-
-    if ($null -ne $script:Cache.Namespace)
-    {
-      $LocalCopy = $null
-
-      if ($IncludeNegative)
-      { $LocalCopy = $script:Cache.Namespace }
-      else 
-      { $LocalCopy = $script:Cache.Namespace | Where-Object ID -ge 0 }
-
-          if ($PSBoundParameters.ContainsKey('NamespaceName'))
-      { return ($LocalCopy | Where-Object Name -EQ $NamespaceName | Copy-Object) }
-      elseif ($PSBoundParameters.ContainsKey('NamespaceID'))
-      { return ($LocalCopy | Where-Object ID   -EQ $NamespaceID   | Copy-Object) }
-      else
-      { return ($LocalCopy                                        | Copy-Object) }
-    }
-
-    return $null
-  }
-
-  End { }
-}
-#endregion
-
-#region Get-MWNamespacePage
-function Get-MWNamespacePage
-{
-  [CmdletBinding()]
-  param
-  (
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, Position=0)]
-    [string]$Name,
-
-    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
-    [string]$ResultSize = 1000,
-
-    [switch]$JSON
-  )
-
-  Begin {
-    if ($ResultSize -eq 'Unlimited')
-    { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
-  }
-
-  Process {
-    $Parameters  = @{
-      Namespace  = $Name
-      ResultSize = $ResultSize
-      JSON       = $JSON
-    }
-
-    Find-MWPage @Parameters
-  }
-
-  End { }
 }
 #endregion
 
