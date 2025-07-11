@@ -2584,6 +2584,7 @@ function Get-MWDuplicateFile
 #endregion
 
 #region Get-MWEmbeddedIn
+Set-Alias -Name Get-MWTranscludedIn -Value Get-MWEmbeddedIn
 function Get-MWEmbeddedIn
 {
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
@@ -3577,6 +3578,7 @@ function Get-MWSiteInfo
 #endregion
 
 #region Get-MWTranscludedIn
+<#
 function Get-MWTranscludedIn
 {
   [CmdletBinding()]
@@ -3594,9 +3596,6 @@ function Get-MWTranscludedIn
     [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
     [string]$ResultSize = 1000,
     
-    <#
-      Debug
-    #>
     [switch]$JSON
   )
 
@@ -3689,6 +3688,7 @@ function Get-MWTranscludedIn
     return $ArrPSCustomObject
   }
 }
+#>
 #endregion
 
 #region Get-MWUserInfo
