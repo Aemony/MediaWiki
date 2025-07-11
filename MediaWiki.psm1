@@ -2847,6 +2847,14 @@ function Get-MWRecentChanges
     if ($ResultSize -eq 'Unlimited')
     { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
 
+    $Body = [ordered]@{
+      action        = 'query'
+      list          = 'recentchanges'
+     #rcprop        = 'info'
+      rclimit       = 'max'
+      rcdir         = 'older'
+    }
+
     if (-not [string]::IsNullOrEmpty($Properties))
     {
       # Convert everything to lowercase
@@ -2891,14 +2899,6 @@ function Get-MWRecentChanges
       { $Type = @('categorize', 'edit', 'external', 'log', 'new') }
 
       $Body.rctype = ($Type -join '|')
-    }
-
-    $Body = [ordered]@{
-      action        = 'query'
-      list          = 'recentchanges'
-     #rcprop        = 'info'
-      rclimit       = 'max'
-      rcdir         = 'older'
     }
 
     if ($PSBoundParameters.ContainsKey('Start'))
