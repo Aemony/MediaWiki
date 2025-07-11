@@ -70,7 +70,7 @@ changes throughout its code as I learn, rethink, and redesign components here an
    * `Search-MWPage` - Interface for [list=search](https://www.mediawiki.org/wiki/API:Search) to perform a full text search on the site.
    * `Set-MWPage` - Interface for [action=edit](https://www.mediawiki.org/wiki/API:Edit) to edit a page.
    * `Update-MWPage` - Weird hack that is both an interface for [action=purge](https://www.mediawiki.org/wiki/API:Purge) but also a variant of `Set-MWPage` when used with -NullEdit.
-    * A "null edit" is what the PCGW community ended up calling performing an edit where no actual content is changed. This type of change can at times trigger backend refreshes (e.g. extensions such as Cargo) that otherwise would not be affected by a normal purge (even ones with ForceLinkUpdate and ForceRecursiveLinkUpdate enforced).
+     * A "null edit" is what the PCGW community ended up calling performing an edit where no actual content is changed. This type of change can at times trigger backend refreshes (e.g. extensions such as Cargo) that otherwise would not be affected by a normal purge (even ones with ForceLinkUpdate and ForceRecursiveLinkUpdate enforced).
    * `Watch-MWPage` - Not implemented. Will probably end up watching or unwatching a page maybe?
 
 ## Cheat sheet
