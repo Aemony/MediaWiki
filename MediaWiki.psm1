@@ -3141,6 +3141,11 @@ function Get-MWNamespace
     # Negative namespaces (Media and Special) are special and seldom used/supported through the API.
     [switch]$IncludeNegative,
     
+    # The function can also alternative extract the namespace from a given (full) page name
+    [Parameter(ParameterSetName = 'PageName', Position=0)]
+    [AllowEmptyString()] # Main namespace has no name
+    [string]$PageName,
+    
     <#
       Debug
     #>
@@ -3157,26 +3162,41 @@ function Get-MWNamespace
       return $null
     }
 
-    $NamespaceName = $NamespaceName.Replace(':', '')
-
-    if ($null -ne $script:Cache.Namespace)
+    # Alternate mode
+    if ($PageName)
     {
-      $LocalCopy = $null
-
-      if ($IncludeNegative)
-      { $LocalCopy = $script:Cache.Namespace }
-      else 
-      { $LocalCopy = $script:Cache.Namespace | Where-Object ID -ge 0 }
-
-          if ($PSBoundParameters.ContainsKey('NamespaceName'))
-      { return ($LocalCopy | Where-Object Name -EQ $NamespaceName | Copy-Object) }
-      elseif ($PSBoundParameters.ContainsKey('NamespaceID'))
-      { return ($LocalCopy | Where-Object ID   -EQ $NamespaceID   | Copy-Object) }
-      else
-      { return ($LocalCopy                                        | Copy-Object) }
+      $NamespacePortion = ''
+      # First portion includes the namespace
+      if ($PageName -like "*:*")
+      { $NamespacePortion = ($PageName -split ':')[0] }
+      # Recursive call for the win :)
+      Get-MWNamespace -Name $NamespacePortion
     }
 
-    return $null
+    # Main mode
+    else
+    {
+      $NamespaceName = $NamespaceName.Replace(':', '')
+
+      if ($null -ne $script:Cache.Namespace)
+      {
+        $LocalCopy = $null
+
+        if ($IncludeNegative)
+        { $LocalCopy = $script:Cache.Namespace }
+        else 
+        { $LocalCopy = $script:Cache.Namespace | Where-Object ID -ge 0 }
+
+            if ($PSBoundParameters.ContainsKey('NamespaceName'))
+        { return ($LocalCopy | Where-Object Name -EQ $NamespaceName | Copy-Object) }
+        elseif ($PSBoundParameters.ContainsKey('NamespaceID'))
+        { return ($LocalCopy | Where-Object ID   -EQ $NamespaceID   | Copy-Object) }
+        else
+        { return ($LocalCopy                                        | Copy-Object) }
+      }
+
+      return $null
+    }
   }
 
   End { }
