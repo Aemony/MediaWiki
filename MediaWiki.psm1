@@ -355,7 +355,7 @@ $script:PropertyNamePascal    = @{
   parsewarnings               = 'ParseWarnings'
   properties                  = 'Properties'
   text                        = 'Text'                           # Text / WikitextAsHtml
-  wikitext                    = 'WikiText'
+  wikitext                    = 'Wikitext'
   transcludedin               = 'TranscludedIn'
 
   <# Images #>
@@ -1353,7 +1353,7 @@ function ConvertTo-MWParsedOutput
       if ($Properties -contains '*')
       { $Properties = @('Categories', 'EncodedJSConfigVars', 'ExternalLinks', 'HeadHtml', 'Images', 'Indicators', 'IwLinks', 'JSConfigVars', 'LangLinks', 'LimitReportData', 'LimitReportHtml', 'Links', 'Modules', 'ParseTree', 'ParseWarnings', 'Properties', 'Templates', 'Text', 'Wikitext') }
 
-      if ($WikiText -and $Properties -notcontains 'wikitext')
+      if ($Wikitext -and $Properties -notcontains 'wikitext')
       { $Properties += @('wikitext') }
       elseif ($ParsedText -and $Properties -notcontains 'text')
       { $Properties += @('text') }
@@ -3243,7 +3243,7 @@ function Get-MWPage
     # Unsupported on PCGW: ParseWarningsHtml, Subtitle
 
     [switch]$ParsedText,
-    [switch]$WikiText,
+    [switch]$Wikitext,
 
     [switch]$FollowRedirects,
 
@@ -3283,7 +3283,7 @@ function Get-MWPage
       if ($Properties -contains '*')
       { $Properties = @('Categories', 'CategoriesHtml', 'DisplayTitle', 'EncodedJSConfigVars', 'ExternalLinks', 'HeadHtml', 'Images', 'Indicators', 'IwLinks', 'JSConfigVars', 'LangLinks', 'LimitReportData', 'LimitReportHtml', 'Links', 'Modules', 'ParseTree', 'ParseWarnings', 'Properties', 'RevId', 'Sections', 'Templates', 'Text', 'Wikitext') }
 
-      if ($WikiText -and $Properties -notcontains 'wikitext')
+      if ($Wikitext -and $Properties -notcontains 'wikitext')
       { $Properties += @('wikitext') }
       elseif ($ParsedText -and $Properties -notcontains 'text')
       { $Properties += @('text') }
@@ -3323,6 +3323,9 @@ function Get-MWPage
         $PSCustomObject | Add-Member -MemberType NoteProperty -Name $Property -Value $Value -Force
       }
     }
+
+    # Also attach the timestamp when the data was retrieved
+    $PSCustomObject | Add-Member -MemberType NoteProperty -Name 'ServerTimestamp' -Value $ArrJSON.curtimestamp
 
     return $PSCustomObject
   }
@@ -3381,8 +3384,7 @@ function Get-MWPageInfo
     if ($FollowRedirects)
     { $Body.redirects = $null }
 
-    $Response = Invoke-MWApiRequest -Body $Body -Method GET
-    $ArrJSON += $Response
+    $ArrJSON += Invoke-MWApiRequest -Body $Body -Method GET
   }
 
   End
@@ -4169,13 +4171,17 @@ function New-MWPage
     [Alias('Title', 'Identity', 'PageName')]
     [string]$Name,
 
-    [Parameter(ValueFromPipelineByPropertyName, Position=1)]
-    [Alias("Text")]
-    [string]$Content,
-
     [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
     [AllowEmptyString()]
     [string]$Summary,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [Alias('Text')]
+    [string]$Content,
+
+    # Alias for $Content, but in a way to support ValueFromPipelineByPropertyName
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [string]$Wikitext,
 
     <#
       Watchlist
@@ -4210,6 +4216,15 @@ function New-MWPage
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
     }
+
+    if ($Content -and $Wikitext)
+    {
+      Write-Warning "-Content and -Wikitext cannot be used at the same time!"
+      return $null
+    }
+
+    if ($Wikitext)
+    { $Content = $Wikitext }
 
     $Params = @{
       Name       = $Name
@@ -4492,8 +4507,12 @@ function Set-MWPage
     [string]$Summary,
 
     [Parameter(ValueFromPipelineByPropertyName)]
-    [Alias("Text")]
+    [Alias('Text')]
     [string]$Content,
+
+    # Alias for $Content, but in a way to support ValueFromPipelineByPropertyName
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [string]$Wikitext,
 
     <#
       Section based stuff
@@ -4562,6 +4581,15 @@ function Set-MWPage
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
     }
+
+    if ($Content -and $Wikitext)
+    {
+      Write-Warning "-Content and -Wikitext cannot be used at the same time!"
+      return $null
+    }
+
+    if ($Wikitext)
+    { $Content = $Wikitext }
 
     $PSCustomObject = @()
     $JoinedTags     = ''
