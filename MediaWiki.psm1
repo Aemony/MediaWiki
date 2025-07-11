@@ -676,7 +676,7 @@ function ConvertTo-MWEscapedString
 
   Process
   {
-      # https://www.thoughtco.com/html-code-for-common-symbols-and-signs-2654021
+    # https://www.thoughtco.com/html-code-for-common-symbols-and-signs-2654021
     $Buffer = $InputObject | ForEach-Object {
       $Escaped = $_
       $Escaped = $Escaped.Replace('=', '&#61;' )
