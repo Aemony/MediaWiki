@@ -3504,32 +3504,32 @@ function Get-MWSiteInfo
 
     $Response = Invoke-MWApiRequest -Body $Body -Method GET -IgnoreDisconnect -IgnoreAnonymous
 
-    # TODO: Translate to PSCustomObject
+    $PSCustomObject = $Response.query | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
 
-    # Update the local caches if we can retrieve stuff
-    $Output = $null
-    if ($Output = $Response.query)
+    if ($null -ne $PSCustomObject.Restrictions)
     {
-      if ($null -ne $Response.query.restrictions)
-      {
-        $script:Cache.RestrictionType  = $Response.query.restrictions.types
-        $script:Cache.RestrictionLevel = $Response.query.restrictions.levels | Where-Object { $PSItem -ne '' }
-      }
+      # Clone the values for internal use
+      $script:Cache.RestrictionType  =  $PSCustomObject.Restrictions.Types.Clone()
+      $script:Cache.RestrictionLevel = ($PSCustomObject.Restrictions.Levels | Where-Object { $PSItem -ne '' }).Clone()
+    }
 
-      # Update the local namespace cache
-      if ($Namespaces = ConvertFrom-HashtableToPSObject $Response.query.namespaces)
-      {
-        $ArrNamespaces = @()
-        ForEach ($NamespaceProperty in $Namespaces.PsObject.Properties)
-        {
-          $Namespace      = $NamespaceProperty.Value
-          $Namespace      = Rename-PropertyName $Namespace -PropertyName 'Content' -NewPropertyName 'IsContentNamespace'
-          $ArrNamespaces += $Namespace
-        }
+    # Update the local namespace cache
+    if ($null -ne $PSCustomObject.Namespaces)
+    {
+      $PSCustomObject.Namespaces = $PSCustomObject.Namespaces | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
 
-        # Populate the namespaces of MediaWiki to a local variable
-        $script:Cache.Namespace = $ArrNamespaces
+      # Convert from object to array
+      $ArrNamespaces = @()
+      ForEach ($NamespaceProperty in $PSCustomObject.Namespaces.PSObject.Properties)
+      {
+        $Namespace      = $NamespaceProperty.Value
+        $Namespace      = Rename-PropertyName $Namespace -PropertyName 'Content' -NewPropertyName 'IsContentNamespace'
+        $ArrNamespaces += $Namespace
       }
+      $PSCustomObject.Namespaces = $ArrNamespaces
+
+      # Clone the values for internal use
+      $script:Cache.Namespace = $ArrNamespaces.Clone()
     }
 
     # Return raw JSON if requested
@@ -3537,7 +3537,7 @@ function Get-MWSiteInfo
     { return $Response }
 
     # Return a PSCustomObject
-    return ConvertFrom-HashtableToPSObject $Output
+    return $PSCustomObject
   }
 }
 #endregion
@@ -3699,96 +3699,12 @@ function Get-MWUserInfo
 
     $Response = Invoke-MWApiRequest -Body $Body -Method GET -IgnoreDisconnect -IgnoreAnonymous
 
-    # TODO: Translate to PSCustomObject
-
     if ($JSON)
     { return $Response }
 
-    $ArrPSCustomObject = $null
-    if ($UserInfo = $Response.query.userinfo)
-    {
-      $ObjectProperties = [ordered]@{
-        ID        = $UserInfo.id
-        Name      = $UserInfo.name
-      }
+    $PSCustomObject = $Response.query.userinfo | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
 
-      if ($null -ne $UserInfo.anon)
-      { $ObjectProperties.Anonymous = $true }
-
-      if ($null -ne $UserInfo.blockinfo)
-      { $ObjectProperties.BlockInfo = $UserInfo.blockinfo}
-
-      if ($null -ne $UserInfo.messages)
-      { $ObjectProperties.Messages = $UserInfo.messages }
-
-      if ($null -ne $UserInfo.unreadcount)
-      { $ObjectProperties.UnreadCount = $UserInfo.unreadcount }
-
-      # Adds the date of user's latest contribution.
-      if ($null -ne $UserInfo.latestcontrib)
-      { $ObjectProperties.LatestContribution = $UserInfo.latestcontrib }
-
-      if ($null -ne $UserInfo.rights)
-      { $ObjectProperties.Rights = $UserInfo.rights }
-
-      if ($null -ne $UserInfo.ratelimits)
-      { $ObjectProperties.RateLimits = $UserInfo.ratelimits }
-
-      if ($null -ne $UserInfo.theoreticalratelimits)
-      { $ObjectProperties.TheoreticalRateLimits = $UserInfo.theoreticalratelimits }
-
-      if ($null -ne $UserInfo.groups)
-      { $ObjectProperties.Groups = $UserInfo.groups }
-
-      if ($null -ne $UserInfo.groupmemberships)
-      { $ObjectProperties.GroupMemberships = $UserInfo.groupmemberships }
-
-      if ($null -ne $UserInfo.implicitgroups)
-      { $ObjectProperties.ImplicitGroups = $UserInfo.implicitgroups }
-
-      # Lists the groups the current user can add to and remove from.
-      if ($null -ne $UserInfo.changeablegroups)
-      { $ObjectProperties.ChangeableGroups = $UserInfo.changeablegroups }
-
-      if ($null -ne $UserInfo.options)
-      { $ObjectProperties.Options = $UserInfo.options }
-
-      if ($null -ne $UserInfo.preferencestoken)
-      { $ObjectProperties.PreferencesToken = $UserInfo.preferencestoken }
-
-      if ($null -ne $UserInfo.editcount)
-      { $ObjectProperties.EditCount = $UserInfo.editcount }
-
-      if ($null -ne $UserInfo.realname)
-      { $ObjectProperties.RealName = $UserInfo.realname }
-
-      if ($null -ne $UserInfo.email)
-      { $ObjectProperties.Email = $UserInfo.email }
-
-      if ($null -ne $UserInfo.emailauthenticated)
-      { $ObjectProperties.EmailAuthenticated = $UserInfo.emailauthenticated }
-
-      if ($null -ne $UserInfo.registrationdate)
-      { $ObjectProperties.RegistrationDate = $UserInfo.registrationdate }
-
-      if ($null -ne $UserInfo.cancreateaccount)
-      { $ObjectProperties.CanCreateAccount = $true }
-
-      # Adds the central IDs and attachment status for the user.
-      if ($null -ne $UserInfo.centralids)
-      { $ObjectProperties.CentralIDs = $UserInfo.centralids }
-
-      # Adds the central IDs and attachment status for the user.
-      if ($null -ne $UserInfo.attachedlocal)
-      { $ObjectProperties.AttachedLocal = $UserInfo.attachedlocal }
-
-      # Echoes the Accept-Language header sent by the client in a structured format.
-      if ($null -ne $UserInfo.acceptlang)
-      { $ObjectProperties.AcceptLanguage = $UserInfo.acceptlang }
-
-      $ArrPSCustomObject = New-Object PSObject -Property $ObjectProperties
-    }
-    return $ArrPSCustomObject
+    return $PSCustomObject
   }
 }
 #endregion
