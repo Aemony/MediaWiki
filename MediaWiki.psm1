@@ -276,7 +276,7 @@ $script:PropertyNamePascal    = @{
 
   <# User Info #>
   userinfo                    = 'UserInfo'
-  anon                        = 'Anonymous'                      # Longer
+  anon                        = 'Anonymous'                      # Renamed
   messages                    = 'Messages'
   unreadcount                 = 'UnreadCount'
   editcount                   = 'EditCount'
@@ -296,16 +296,96 @@ $script:PropertyNamePascal    = @{
   ip                          = 'IP'
   hits                        = 'Hits'
   seconds                     = 'Seconds'
+  attachedlocal               = 'AttachedLocal'
+  local                       = 'Local'
+  centralids                  = 'CentralIDs'
+  changeablegroups            = 'ChangeableGroups'
+    add                         = 'Add'
+   'add-self'                   = 'AddSelf'                      # Renamed
+    remove                      = 'Remove'
+   'remove-self'                = 'RemoveSelf'                   # Renamed
+  email                       = 'Email'
+  groupmemberships            = 'GroupMemberships'
+  implicitgroups              = 'ImplicitGroups'
+  options                     = 'Options'                        # Options are as varied as the extesions installed, so only pascal case some of them...
+    # User Profile
+    fancysig                    = 'FancySig' # If User uses a custom (raw) signature (0 or 1). If user has specified a custom sig, the actual text of the signature is in the nickname option.
+    nickname                    = 'Nickname' # Custom signature
+    enotifwatchlistpages        = 'ENotifWatchlistPages'
+    enotifusertalkpages         = 'ENotifUserTalkPages'
+    enotifminoredits            = 'ENotifMinorEdits'
+    enotifrevealaddr            = 'ENotifRevealAddr'
+    gender                      = 'Gender'
+    realname                    = 'RealName'
+    language                    = 'Language'
+    disablemail                 = 'DisableMail'
+    # Skin
+    skin                        = 'Skin'
+    # Files
+    imagesize                   = 'ImageSize'
+    thumbsize                   = 'Thumbsize'
+    # Date and Time
+    date                        = 'Date'
+    timecorrection              = 'TimeCorrection'
+    # Editing
+    editfont                    = 'EditFont'
+    editondblclick              = 'EditOnDblClick'
+    editsectiononrightclick     = 'EditSectionOnRightClick'
+    forceeditsummary            = 'ForceEditSummary'
+    previewonfirst              = 'PreviewOnFirst'
+    previewontop                = 'PreviewOnTop'
+    minordefault                = 'MinorDefault'
+    useeditwarning              = 'UseEditWarning'
+    uselivepreview              = 'UseLivePreview'
+    # Recent Changes
+    rcdays                      = 'RcDays'
+    rclimit                     = 'RcLimit'
+    hidecategorization          = 'HideCategorization'
+    hideminor                   = 'HideMinor'
+    hidepatrolled               = 'HidePatrolled'
+    newpageshidepatrolled       = 'NewPagesHidePatrolled'
+    shownumberswatching         = 'ShowNumbersWatching'
+    usenewrc                    = 'UseNewRc'
+    # Watchlist
+    extendwatchlist             = 'ExtendWatchlist' # Expand watchlist to show all applicable changes
+    watchcreations              = 'WatchCreations'
+    watchdefault                = 'WatchDefault'
+    watchdeletion               = 'WatchDeletion'
+    watchlistdays               = 'WatchlistDays'
+    watchlisthideanons          = 'WatchlistHideAnons'
+    watchlisthidebots           = 'WatchlistHideBots'
+    watchlisthidecategorization = 'WatchlistHideCategorization'
+    watchlisthideliu            = 'WatchlistHideLIU' # Hide Logged In User
+    watchlisthideminor          = 'WatchlistHideMinor'
+    watchlisthideown            = 'WatchlistHideOwn'
+    watchlisthidepatrolled      = 'Watchlist'
+    watchlistreloadautomatically= 'WatchlistReloadAutomatically'
+    watchlistunwatchlinks       = 'WatchlistUnwatchLinks'
+    watchmoves                  = 'WatchMoves'
+    watchrollback               = 'WatchRollback'
+    watchuploads                = 'WatchUploads'
+    wllimit                     = 'WlLimit' # Number of edits to show in expanded watchlist (if 'extendwatchlist' == 1) 
+    # Misc
+    ccmeonemails                = 'CCMeOnEmails'
+    diffonly                    = 'DiffOnly'
+    norollbackdiff              = 'NoRollbackDiff'
+    numberheadings              = 'NumberHeadings'
+    prefershttps                = 'PrefersHTTPS'
+    requireemail                = 'RequireEmail'
+    showhiddencats              = 'ShowHiddenCats'
+    showrollbackconfirmation    = 'ShowRollbackConfirmation'
+    stubthreshold               = 'StubThreshold'
+    underline                   = 'Underline'
 
   <# Pages #>
   id                          = 'ID'                             # Potential conflict with PageID ?
-  ns                          = 'Namespace'                      # Longer
-  pageid                      = 'ID'                             # pageid -> ID
-  title                       = 'Name'                           # title  -> Name
+  ns                          = 'Namespace'                      # Renamed
+  pageid                      = 'ID'                             # Renamed
+  title                       = 'Name'                           # Renamed
   displaytitle                = 'DisplayTitle'
   touched                     = 'LastModified'                   # Renamed
-  revid                       = 'RevisionID'                     # Longer
-  lastrevid                   = 'LastRevisionID'                 # Longer
+  revid                       = 'RevisionID'                     # Renamed
+  lastrevid                   = 'LastRevisionID'                 # Renamed
   length                      = 'Length'
   links                       = 'Links'
   externallinks               = 'ExternalLinks'
@@ -622,7 +702,7 @@ function ConvertFrom-HashtableToPSObject
         if ($NewName)
         { $Key = $NewName }
         elseif ($Key -notmatch "^[-]?[\d]+$")
-        { Write-Warning "Missing pascal case for: $Key" }
+        { Write-Verbose "Missing pascal case for: $Key" }
 
         # Handle array (preserve nested structure)
         if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [string])
@@ -1229,7 +1309,7 @@ function Connect-MWSession
     $script:Cache.SiteInfo = Get-MWSiteInfo
 
     # Cache user information (rate limits etc)
-    $script:Cache.UserInfo = Get-MWUserInfo
+    $script:Cache.UserInfo = Get-MWCurrentUser
 
     Write-Host "Welcome " -ForegroundColor Yellow -NoNewline
 
@@ -3656,8 +3736,8 @@ function Get-MWTranscludedIn
 #>
 #endregion
 
-#region Get-MWUserInfo
-function Get-MWUserInfo
+#region Get-MWCurrentUser
+function Get-MWCurrentUser
 {
   [CmdletBinding()]
   param
@@ -3706,6 +3786,50 @@ function Get-MWUserInfo
 
     return $PSCustomObject
   }
+}
+#endregion
+
+#region Get-MWUserPreference
+function Get-MWCurrentUserPreference
+{
+  [CmdletBinding()]
+  param   ( )
+  Begin   { }
+  Process { }
+  End     { return (Get-MWCurrentUser -Properties 'options').Options }
+}
+#endregion
+
+#region Get-MWUserRight
+function Get-MWCurrentUserGroup
+{
+  [CmdletBinding()]
+  param   ( )
+  Begin   { }
+  Process { }
+  End     { return (Get-MWCurrentUser -Properties 'groups').Groups }
+}
+#endregion
+
+#region Get-MWUserRateLimit
+function Get-MWCurrentUserRateLimit
+{
+  [CmdletBinding()]
+  param   ( )
+  Begin   { }
+  Process { }
+  End     { return (Get-MWCurrentUser -Properties 'ratelimits').RateLimits }
+}
+#endregion
+
+#region Get-MWUserRight
+function Get-MWCurrentUserRight
+{
+  [CmdletBinding()]
+  param   ( )
+  Begin   { }
+  Process { }
+  End     { return (Get-MWCurrentUser -Properties 'rights').Rights }
 }
 #endregion
 
@@ -3826,7 +3950,7 @@ function Invoke-MWApiRequest
 
     # Used by Disconnect-MWSession and Get-MWCsrfToken to not renew expired CSRF/edit tokens
     [switch]$IgnoreDisconnect,
-    # Used by Disconnect-MWSession and Get-MWCsrfToken and Get-MWUserInfo to suppress anonymous warnings
+    # Used by Disconnect-MWSession and Get-MWCsrfToken and Get-MWCurrentUser to suppress anonymous warnings
     [switch]$IgnoreAnonymous,
     # Used by Disconnect-MWSession and Get-MWCsrfToken and Connect-MWSession to suppress adding asserings to the calls
     [switch]$NoAssert
@@ -4147,27 +4271,18 @@ function New-MWPage
 
   Process
   {
-    if ($null -eq $script:Config.URI)
-    {
-      Write-Warning "Not connected to a MediaWiki instance."
-      return $null
-    }
-
-    if ($Content -and $Wikitext)
-    {
-      Write-Warning "-Content and -Wikitext cannot be used at the same time!"
-      return $null
-    }
-
-    if ($Wikitext)
-    { $Content = $Wikitext }
-
     $Params = @{
       Name       = $Name
-      Content    = $Content
       WatchList  = $WatchList
       CreateOnly = $true
+      JSON       = $JSON
     }
+
+    if ($Content)
+    { $Params.Content = $Content }
+
+    if ($Wikitext)
+    { $Params.Wikitext = $Wikitext }
 
     if ($Summary)
     { $Params.Summary = $Summary }
@@ -4186,9 +4301,6 @@ function New-MWPage
 
     if ($Tags)
     { $Params.Tags = $Tags }
-
-    if ($JSON)
-    { $Params.JSON = $true }
 
     return Set-MWPage @Params
   }
@@ -4801,9 +4913,7 @@ function Update-MWPage
 
         Write-Verbose "[Update-MWPage] Sending payload: $($PagesLimited -join '|')"
 
-        Write-Host ((Get-MWUserInfo).RateLimits.purge.ip.seconds)
-
-        $WebRequest = Invoke-MWApiRequest -Body $Body -Method POST -RateLimit ((Get-MWUserInfo).RateLimits.purge.ip.seconds)
+        $WebRequest = Invoke-MWApiRequest -Body $Body -Method POST -RateLimit ((Get-MWCurrentUser).RateLimits.purge.ip.seconds)
 
         if ($WebRequest)
         {
