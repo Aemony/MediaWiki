@@ -377,6 +377,13 @@ $script:PropertyNamePascal    = @{
     stubthreshold               = 'StubThreshold'
     underline                   = 'Underline'
 
+  <# Users #>
+  attachedwiki                = 'AttachedWiki'
+  emailable                   = 'Emailable'
+  expiry                      = 'Expiry'
+  group                       = 'Group'
+  registration                = 'Registration'
+
   <# Pages #>
   id                          = 'ID'                             # Potential conflict with PageID ?
   ns                          = 'Namespace'                      # Renamed
@@ -2494,6 +2501,103 @@ function Get-MWCsrfToken
 }
 #endregion
 
+#region Get-MWCurrentUser
+function Get-MWCurrentUser
+{
+  [CmdletBinding()]
+  param
+  (
+    # Use * to include all properties
+    [Parameter(Position=0)]
+    [ValidateSet('', '*', 'blockinfo', 'centralids', 'changeablegroups', 'editcount', 'email', 'groupmemberships', 'groups', 'hasmsg', 'implicitgroups', 'latestcontrib', 'options', 'ratelimits', 'realname', 'registrationdate', 'rights', 'unreadcount')]
+    [string[]]$Properties = @('groups', 'rights', 'ratelimits', 'latestcontrib', 'hasmsg', 'unreadcount', 'editcount'),
+    # Comma-separated list of additional properties to include:
+    # cancreateaccount, blockinfo, centralids, changeablegroups, editcount, email, groupmemberships, groups, hasmsg, implicitgroups, latestcontrib, options, ratelimits, realname, registrationdate, rights, theoreticalratelimits, unreadcount
+    # Not supported on PCGW? cancreateaccount, theoreticalratelimits, 
+    
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process { }
+
+  End
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    if ($Properties -contains '*')
+    { $Properties = @('blockinfo', 'centralids', 'changeablegroups', 'editcount', 'email', 'groupmemberships', 'groups', 'hasmsg', 'implicitgroups', 'latestcontrib', 'options', 'ratelimits', 'realname', 'registrationdate', 'rights', 'unreadcount') }
+
+    $Body = [ordered]@{
+      action = 'query'
+      meta   = 'userinfo'
+      uiprop = ($Properties.ToLower() -join '|')
+    }
+
+    $Response = Invoke-MWApiRequest -Body $Body -Method GET -IgnoreDisconnect -IgnoreAnonymous
+
+    if ($JSON)
+    { return $Response }
+
+    $PSCustomObject = $Response.query.userinfo | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
+
+    return $PSCustomObject
+  }
+}
+#endregion
+
+#region Get-MWUserPreference
+function Get-MWCurrentUserPreference
+{
+  [CmdletBinding()]
+  param   ( )
+  Begin   { }
+  Process { }
+  End     { return (Get-MWCurrentUser -Properties 'options').Options }
+}
+#endregion
+
+#region Get-MWUserRight
+function Get-MWCurrentUserGroup
+{
+  [CmdletBinding()]
+  param   ( )
+  Begin   { }
+  Process { }
+  End     { return (Get-MWCurrentUser -Properties 'groups').Groups }
+}
+#endregion
+
+#region Get-MWUserRateLimit
+function Get-MWCurrentUserRateLimit
+{
+  [CmdletBinding()]
+  param   ( )
+  Begin   { }
+  Process { }
+  End     { return (Get-MWCurrentUser -Properties 'ratelimits').RateLimits }
+}
+#endregion
+
+#region Get-MWUserRight
+function Get-MWCurrentUserRight
+{
+  [CmdletBinding()]
+  param   ( )
+  Begin   { }
+  Process { }
+  End     { return (Get-MWCurrentUser -Properties 'rights').Rights }
+}
+#endregion
+
 #region Get-MWDuplicateFile
 function Get-MWDuplicateFile
 {
@@ -3622,6 +3726,89 @@ function Get-MWSiteInfo
 }
 #endregion
 
+#region Get-MWUser
+function Get-MWUser
+{
+  [CmdletBinding(DefaultParameterSetName = 'UserName')]
+  param
+  (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'UserName', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias("UserName")]
+    [string[]]$Name,
+
+    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'UserID', Position=0)]
+    [Alias("UserID")]
+    [int[]]$ID,
+
+    # Use * to include all properties
+    [Parameter()]
+    [ValidateSet('', '*', 'blockinfo', 'cancreate', 'centralids', 'editcount', 'emailable', 'gender', 'groupmemberships', 'groups', 'implicitgroups', 'registration', 'rights')]
+    [string[]]$Properties = @('editcount', 'groups', 'registration', 'rights'),
+    # Not supported on PCGW?
+
+    # With usprop=centralids, indicate whether the user is attached with the wiki identified by this ID. 
+    [int]$AttachedWiki,
+    
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process { }
+
+  End
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    $Body = [ordered]@{
+      action = 'query'
+      list   = 'users'
+    }
+
+    # With usprop=centralids, indicate whether the user is attached with the wiki identified by this ID. 
+    if ($AttachedWiki)
+    {
+      if ($Properties -notcontains "centralids")
+      { $Properties += 'centralids' }
+      
+      $Body.usattachedwiki = $AttachedWiki
+    }
+
+    if ($Properties -contains '*')
+    { $Properties = @('blockinfo', 'cancreate', 'centralids', 'editcount', 'emailable', 'gender', 'groupmemberships', 'groups', 'implicitgroups', 'registration', 'rights') }
+
+    if ($Name)
+    { $Body.ususers = $Name -join '|' }
+
+    if ($ID)
+    { $Body.ususerids = $ID -join '|' }
+
+    if ($Properties)
+    { $Body.usprop = ($Properties.ToLower() -join '|') }
+
+    $Response = Invoke-MWApiRequest -Body $Body -Method GET
+
+    if ($JSON)
+    { return $Response }
+
+    $PSCustomObject = $Response.query.users | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
+
+    return $PSCustomObject
+  }
+}
+#endregion
+
 #region Get-MWTranscludedIn
 <#
 function Get-MWTranscludedIn
@@ -3734,103 +3921,6 @@ function Get-MWTranscludedIn
   }
 }
 #>
-#endregion
-
-#region Get-MWCurrentUser
-function Get-MWCurrentUser
-{
-  [CmdletBinding()]
-  param
-  (
-    # Use * to include all properties
-    [Parameter(Position=0)]
-    [ValidateSet('', '*', 'blockinfo', 'centralids', 'changeablegroups', 'editcount', 'email', 'groupmemberships', 'groups', 'hasmsg', 'implicitgroups', 'latestcontrib', 'options', 'ratelimits', 'realname', 'registrationdate', 'rights', 'unreadcount')]
-    [string[]]$Properties = @('groups', 'rights', 'ratelimits', 'latestcontrib', 'hasmsg', 'unreadcount', 'editcount'),
-    # Comma-separated list of additional properties to include:
-    # cancreateaccount, blockinfo, centralids, changeablegroups, editcount, email, groupmemberships, groups, hasmsg, implicitgroups, latestcontrib, options, ratelimits, realname, registrationdate, rights, theoreticalratelimits, unreadcount
-    # Not supported on PCGW? cancreateaccount, theoreticalratelimits, 
-    
-    <#
-      Debug
-    #>
-    [switch]$JSON
-  )
-
-  Begin { }
-
-  Process { }
-
-  End
-  {
-    if ($null -eq $script:Config.URI)
-    {
-      Write-Warning "Not connected to a MediaWiki instance."
-      return $null
-    }
-
-    if ($Properties -contains '*')
-    { $Properties = @('blockinfo', 'centralids', 'changeablegroups', 'editcount', 'email', 'groupmemberships', 'groups', 'hasmsg', 'implicitgroups', 'latestcontrib', 'options', 'ratelimits', 'realname', 'registrationdate', 'rights', 'unreadcount') }
-
-    $Body = [ordered]@{
-      action = 'query'
-      meta   = 'userinfo'
-      uiprop = ($Properties.ToLower() -join '|')
-    }
-
-    $Response = Invoke-MWApiRequest -Body $Body -Method GET -IgnoreDisconnect -IgnoreAnonymous
-
-    if ($JSON)
-    { return $Response }
-
-    $PSCustomObject = $Response.query.userinfo | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
-
-    return $PSCustomObject
-  }
-}
-#endregion
-
-#region Get-MWUserPreference
-function Get-MWCurrentUserPreference
-{
-  [CmdletBinding()]
-  param   ( )
-  Begin   { }
-  Process { }
-  End     { return (Get-MWCurrentUser -Properties 'options').Options }
-}
-#endregion
-
-#region Get-MWUserRight
-function Get-MWCurrentUserGroup
-{
-  [CmdletBinding()]
-  param   ( )
-  Begin   { }
-  Process { }
-  End     { return (Get-MWCurrentUser -Properties 'groups').Groups }
-}
-#endregion
-
-#region Get-MWUserRateLimit
-function Get-MWCurrentUserRateLimit
-{
-  [CmdletBinding()]
-  param   ( )
-  Begin   { }
-  Process { }
-  End     { return (Get-MWCurrentUser -Properties 'ratelimits').RateLimits }
-}
-#endregion
-
-#region Get-MWUserRight
-function Get-MWCurrentUserRight
-{
-  [CmdletBinding()]
-  param   ( )
-  Begin   { }
-  Process { }
-  End     { return (Get-MWCurrentUser -Properties 'rights').Rights }
-}
 #endregion
 
 #region Invoke-MWApiContinueRequest
