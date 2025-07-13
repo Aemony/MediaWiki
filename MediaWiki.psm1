@@ -3125,6 +3125,8 @@ function Get-MWRecentChanges
     if ($JSON)
     { return $ArrJSON }
 
+    # TODO Convert to PSObject?
+
     $ArrPSCustomObject = @()
     if ($RecentChanges = $ArrJSON.query.recentchanges | Select-Object -First $ResultSize)
     {
@@ -3724,6 +3726,80 @@ function Get-MWSiteInfo
     return $PSCustomObject
   }
 }
+#endregion
+
+#region Get-MWUnreadNotifications
+<# Unread changes on the watchlist?
+function Get-MWUnreadNotifications
+{
+
+  [CmdletBinding(DefaultParameterSetName = 'UserName')]
+  param
+  (
+    # Group talk pages together with their subject page, and group notifications not associated with a page together with the current user's user page.
+    [int]$GroupPages,
+
+    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
+    [string]$ResultSize = 1000,
+    
+    [switch]$JSON
+  )
+
+  Begin
+  {
+    $ArrJSON = @()
+  }
+
+  Process { }
+
+  End
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    if ($ResultSize -eq 'Unlimited')
+    { $ResultSize = [int32]::MaxValue }
+
+    $Body = [ordered]@{
+      action   = 'query'
+      meta     = 'unreadnotificationpages'
+      unplimit = 'max'
+    }
+
+
+    $ArrJSON += Invoke-MWApiContinueRequest -Body $Body -Method GET -ResultSize $ResultSize -Node1 'unreadnotificationpages'
+
+    if ($JSON)
+    { return $ArrJSON }
+
+    $ArrPSCustomObject = @()
+    ForEach ($Key in $ArrJSON.query.unreadnotificationpages.PSBase.Keys)
+    {
+      $Wiki       = $ArrJSON.query.unreadnotificationpages.$Key
+      $Source     = $Wiki.source
+      $TotalCount = $Wiki.totalCount # Wrong?
+      if ($Pages = $Wiki.pages | Select-Object -First $ResultSize)
+      {
+        ForEach ($Page in $Pages)
+        {
+          $ObjectProperties = [ordered]@{
+            Wiki  = $Source.title
+            Page  = $Page.title
+            Count = $Page.count
+            Url   = $Source.base.Replace('$1', $Page.title.Replace(' ', '_'))
+          }
+          $ArrPSCustomObject += New-Object PSObject -Property $ObjectProperties
+        }
+      }
+    }
+
+    return $ArrPSCustomObject
+  }
+}
+#>
 #endregion
 
 #region Get-MWUser
