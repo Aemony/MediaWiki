@@ -2102,13 +2102,13 @@ function Get-MWCargoQuery
   param
   (
     [parameter(Mandatory, ValueFromPipelineByPropertyName)]
-    [Alias('Tables')]
-    [string[]]$Table, # The Cargo database table or tables on which to search
+    #[Alias('Table')]
+    [string[]]$Tables, # The Cargo database table or tables on which to search
 
     [parameter(ValueFromPipelineByPropertyName)]
-    [Alias('Fields')]
+    #[Alias('Field')]
     [AllowEmptyString()]
-    [string[]]$Field = '', # The table field(s) to retrieve
+    [string[]]$Fields = '', # The table field(s) to retrieve
 
     [parameter(ValueFromPipelineByPropertyName)]
     [string]$Where, # The conditions for the query, corresponding to an SQL WHERE clause
@@ -2154,8 +2154,8 @@ function Get-MWCargoQuery
     
     $Body = [ordered]@{
       action = 'cargoquery'
-      tables = $Table -join ','
-      fields = ($Table[0] + '._pageName=Name,' + $Table[0] + '._pageID=ID,' + $Table[0] + '._pageNamespace=NamespaceID')
+      tables = $Tables -join ','
+      fields = ($Tables[0] + '._pageName=Name,' + $Tables[0] + '._pageID=ID,' + $Tables[0] + '._pageNamespace=NamespaceID')
       limit  = 'max'
     }
 
