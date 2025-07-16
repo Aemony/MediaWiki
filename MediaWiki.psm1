@@ -488,6 +488,9 @@ $script:PropertyNamePascal    = @{
 
   <# Debug #>
   curtimestamp                = 'ServerTimestamp'                # Current server timestamp / Retrieved
+
+  <# Internals #>
+  NamespaceID                 = 'NamespaceID'
 }
 
 
@@ -2092,9 +2095,10 @@ function Get-MWCargoQuery
     [Alias('Tables')]
     [string[]]$Table, # The Cargo database table or tables on which to search
 
-    [parameter(Mandatory, ValueFromPipelineByPropertyName)]
+    [parameter(ValueFromPipelineByPropertyName)]
     [Alias('Fields')]
-    [string[]]$Field, # The table field(s) to retrieve
+    [AllowEmptyString()]
+    [string[]]$Field = '', # The table field(s) to retrieve
 
     [parameter(ValueFromPipelineByPropertyName)]
     [string]$Where, # The conditions for the query, corresponding to an SQL WHERE clause
@@ -2137,34 +2141,31 @@ function Get-MWCargoQuery
     $Body = [ordered]@{
       action = 'cargoquery'
       tables = $Table -join ','
-      fields = $Field -join ','
+      fields = ($Table[0] + '._pageName=Name,' + $Table[0] + '._pageID=ID,' + $Table[0] + '._pageNamespace=NamespaceID')
     }
 
-    if ($Field -NotLike "*_pageID*" -and $Field -NotLike "*_pageName*" -and $Field -NotLike "*_pageNamespace*")
-    {
-      $Body.fields = ($Table[0] + '._pageName=Name,' + $Table[0] + '._pageID=ID,' + $Table[0] + '._pageNamespace=NamespaceID,' + $Body.fields)
-      Write-Verbose "_pageID and _pageName was omitted from the Field parameter. They have been added to ensure successful queries:`n$($Body.fields)"
-    }
+    if ([string]::IsNullOrEmpty($Fields))
+    { $Body.fields = ($Body.fields + ',' + ($Fields -join ',')) }
 
-    if ($PSBoundParameters.ContainsKey('Where'))
+    if ([string]::IsNullOrEmpty($Where))
     { $Body.where = $Where }
 
-    if ($PSBoundParameters.ContainsKey('JoinOn'))
+    if ([string]::IsNullOrEmpty($JoinOn))
     { $Body.join_on = $JoinOn }
 
-    if ($PSBoundParameters.ContainsKey('GroupBy'))
+    if ([string]::IsNullOrEmpty($GroupBy))
     { $Body.group_by = $GroupBy }
 
-    if ($PSBoundParameters.ContainsKey('Having'))
+    if ([string]::IsNullOrEmpty($Having))
     { $Body.having = $Having }
 
-    if ($PSBoundParameters.ContainsKey('OrderBy'))
+    if ([string]::IsNullOrEmpty($OrderBy))
     { $Body.order_by = $OrderBy }
 
-    if ($PSBoundParameters.ContainsKey('Offset'))
+    if ([string]::IsNullOrEmpty($Offset))
     { $Body.offset = $Offset }
 
-    if ($PSBoundParameters.ContainsKey('Limit'))
+    if ([string]::IsNullOrEmpty($Limit))
     { $Body.limit = $Limit }
 
     $Response = Invoke-MWApiRequest -Body $Body -Method GET
@@ -2172,7 +2173,7 @@ function Get-MWCargoQuery
     if ($JSON)
     { return $Response }
 
-    return $Response.cargoquery.title
+    return ($Response.cargoquery.title | ForEach-Object { ConvertFrom-HashtableToPSObject $_ })
   }
 
   End { }
@@ -4952,7 +4953,6 @@ function Update-MWPage
     [int[]]$ID,
 
     [uint32]$Limit = 30,
-    [uint32]$Offset = 0,
     [switch]$ForceLinkUpdate,
     [switch]$ForceRecursiveLinkUpdate,
     [switch]$NoWait,
@@ -4985,12 +4985,11 @@ function Update-MWPage
 
     if ($ID)
     { $Identities = $ID }
+
+    $Offset = 0
     
     [String[]]$PagesFull = $Identities
     $Max = 1
-
-    Write-Host $Max, $Limit, $Offset
-    Write-Host $Identities
 
     if ($null -ne $PagesFull.Count)
     { $Max = $PagesFull.Count }
@@ -5013,12 +5012,12 @@ function Update-MWPage
 
       $PagesLimited = @()
       $ArrTemp      = @()
-      $WebRequest   = $null
       $Purged       = $null
 
       for ($i = $Offset; $i -lt ($Offset + $Limit) -and $i -lt $Max; $i++)
       { $PagesLimited += $PagesFull[$i] }
 
+      # Null Edit
       if ($NullEdit)
       {
         Write-Verbose "[Update-MWPage] Performing null edits..."
@@ -5028,24 +5027,19 @@ function Update-MWPage
           $Result = $null
 
           if ($Name)
-          { $Result = Set-MWPage -Name $Page -Content "" -Summary "" -Append -Bot -NoCreate -JSON -WarningAction:SilentlyContinue } else {
-            $Result = Set-MWPage   -ID $Page -Content "" -Summary "" -Append -Bot -NoCreate -JSON -WarningAction:SilentlyContinue
-          }
+          { $Result = Set-MWPage -Name $Page -Content "" -Summary "" -Append -Bot -NoCreate -JSON -WarningAction:SilentlyContinue }
+          else
+          { $Result = Set-MWPage   -ID $Page -Content "" -Summary "" -Append -Bot -NoCreate -JSON -WarningAction:SilentlyContinue }
 
           $ObjectProperties = [ordered]@{
             Namespace = (Get-MWNamespace -NamespaceName (($Result.edit.title -split ':')[0])).Name
             Name      = $Result.edit.title
             ID        = $Result.edit.pageid
-          }
-
-          $ObjectProperties += [ordered]@{
             Purged    = ($null -ne $Result.edit.result -and $Result.edit.result -eq 'Success')
-           #Missing   = $null
           }
 
           if ($null -ne $Result.error.code -and $Result.error.code -eq 'missingtitle')
           {
-          #$ObjectProperties.Missing = $true
             $ObjectProperties.Missing   = $true
 
             Write-Warning "The page '$Page' does not exist."
@@ -5055,23 +5049,11 @@ function Update-MWPage
           $ArrPSCustomObject += $PageObject
           $ArrTemp           += $PageObject
         }
-
-        $Purged = $ArrTemp | Where-Object { $_.Purged -eq $true -or $_.Missing -eq $true }
-
-        if ($null -ne $Purged)
-        {
-          if ($Purged.Count)
-          { $Purged = $Purged.Count }
-          else
-          { $Purged = 1 }
-        }
-        else
-        { $Purged = 0 }
-
-        $Offset = $Offset + $Purged
-
-      } else { # Original implementation
-
+      }
+      
+      # Original implementation
+      else
+      {
         if ($Name)
         { $Body.titles  = ($PagesLimited -join '|') }
         else
@@ -5079,32 +5061,28 @@ function Update-MWPage
 
         Write-Verbose "[Update-MWPage] Sending payload: $($PagesLimited -join '|')"
 
-        $WebRequest = Invoke-MWApiRequest -Body $Body -Method POST -RateLimit ((Get-MWCurrentUser).RateLimits.purge.ip.seconds)
+        $Response = Invoke-MWApiRequest -Body $Body -Method POST -RateLimit ($script:Cache.UserInfo.RateLimits.purge.ip.seconds)
 
-        if ($WebRequest)
+        if ($Response)
         {
-          $ArrJSON += $WebRequest
+          $ArrJSON += $Response
 
-          ForEach ($Page in $WebRequest.purge)
+          ForEach ($Page in $Response.purge)
           {
             $ObjectProperties = [ordered]@{
               Namespace = (Get-MWNamespace -NamespaceID $Page.ns).Name
             }
 
             if ($Page.title)
-            { $ObjectProperties.Name = $Page.title } else {
-              $ObjectProperties.ID = $Page.id
-            }
+            { $ObjectProperties.Name = $Page.title }
+            else
+            { $ObjectProperties.ID   = $Page.id }
 
-            $ObjectProperties += [ordered]@{
-              Purged    = ($null -ne $Page.purged)
-             #Missing   = $null
-            }
+            $ObjectProperties.Purged = ($null -ne $Page.purged)
 
             if ($null -ne $Page.missing)
             {
-            #$ObjectProperties.Missing = $true
-              $ObjectProperties.Missing   = $true
+              $ObjectProperties.Missing = $true
 
               Write-Warning "The page '$($Page.title)$($Page.pageid)' does not exist."
             }
@@ -5116,22 +5094,22 @@ function Update-MWPage
             $ArrPSCustomObject += $PageObject
             $ArrTemp           += $PageObject
           }
-
-          $Purged = $ArrTemp | Where-Object { $_.Purged -eq $true -or $_.Missing -eq $true }
-
-          if ($null -ne $Purged)
-          {
-            if ($Purged.Count)
-            { $Purged = $Purged.Count }
-            else
-            { $Purged = 1 }
-          }
-          else
-          { $Purged = 0 }
-
-          $Offset = $Offset + $Purged
         }
       }
+
+      $Purged = $ArrTemp | Where-Object { $_.Purged -eq $true -or $_.Missing -eq $true }
+
+      if ($null -ne $Purged)
+      {
+        if ($Purged.Count)
+        { $Purged = $Purged.Count }
+        else
+        { $Purged = 1 }
+      }
+      else
+      { $Purged = 0 }
+
+      $Offset = $Offset + $Purged
 
       if ($NoWait -eq $false -and $Offset -lt $Max)
       {
