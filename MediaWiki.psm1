@@ -1505,7 +1505,7 @@ function Disconnect-MWSession
       token  = (Get-MWCsrfToken) # An edit token is required to sign out...
     }
     
-    $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -IgnoreAnonymous -NoAssert
+    $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -NoAssert
 
     Clear-MWSession
 
@@ -2521,7 +2521,7 @@ function Get-MWCsrfToken
         type   = 'csrf'
       }
 
-      $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -IgnoreAnonymous -NoAssert
+      $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -NoAssert
 
       if ($Response.query.tokens.csrftoken)
       { $script:CSRFToken = $Response.query.tokens.csrftoken }
@@ -2576,7 +2576,7 @@ function Get-MWCurrentUser
       uiprop = ($Properties.ToLower() -join '|')
     }
 
-    $Response = Invoke-MWApiRequest -Body $Body -Method GET -IgnoreDisconnect -IgnoreAnonymous
+    $Response = Invoke-MWApiRequest -Body $Body -Method GET -IgnoreDisconnect
 
     if ($JSON)
     { return $Response }
@@ -3573,6 +3573,22 @@ function Get-MWPage
 #endregion
 
 #region Get-MWPageInfo
+<#
+.SYNOPSIS
+  Retrieves information about the given pages.
+
+.PARAMETER Name
+  String array of page names to retrieve information about. Cannot be used alongside the -ID parameter.
+
+.PARAMETER ID
+  Integer array of page IDs to retrieve information about. Cannot be used alongside the -Name parameter.
+
+.PARAMETER FollowRedirects
+  Retrieves information about the target pages of any given redirect page, instead of the redirect page itself.
+
+.OUTPUTS
+  Returns a PSObject array containing information about the given pages.
+#>
 function Get-MWPageInfo
 {
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
@@ -3638,6 +3654,13 @@ function Get-MWPageInfo
 #endregion
 
 #region Get-MWProtectionLevel
+<#
+.SYNOPSIS
+  Retrieves protection level from the connected site.
+
+.OUTPUTS
+  Returns a string array of the protection levels of the site.
+#>
 Set-Alias -Name Get-MWRestrictionLevel -Value Get-MWProtectionLevel
 function Get-MWProtectionLevel
 {
@@ -3646,6 +3669,13 @@ function Get-MWProtectionLevel
 #endregion
 
 #region Get-MWProtectionType
+<#
+.SYNOPSIS
+  Retrieves protection types from the connected site.
+
+.OUTPUTS
+  Returns a string array of the protection types of the site.
+#>
 Set-Alias -Name Get-MWRestrictionType -Value Get-MWProtectionType
 function Get-MWProtectionType
 {
@@ -3654,14 +3684,17 @@ function Get-MWProtectionType
 #endregion
 
 #region Get-MWSession
+<#
+.SYNOPSIS
+  Retrieves data about the established MediaWiki API session.
+
+.OUTPUTS
+  Returns the session variable for the active connection.
+#>
 function Get-MWSession
 {
   [CmdletBinding()]
-  param
-  (
-    # Used by Invoke-MWApiRequest to suppress anonymous warnings
-    [switch]$IgnoreAnonymous
-  )
+  param ( )
 
   Begin { }
 
@@ -3669,10 +3702,6 @@ function Get-MWSession
   {
     if ($null -eq $global:MWSession)
     { Write-Verbose "There is no active MediaWiki session! Please use Connect-MWSession to sign in to a MediaWiki API endpoint." }
-    <#
-    elseif ($script:MWSessionGuest -eq $true -and $IgnoreAnonymous -eq $false)
-    { Write-Warning "Using an anonymous guest session; some features and functionality may be unavailable." }
-    #>
 
     return $global:MWSession
   }
@@ -3682,6 +3711,19 @@ function Get-MWSession
 #endregion
 
 #region Get-MWSiteInfo
+<#
+.SYNOPSIS
+  Retrieves properties about the connected site.
+
+.DESCRIPTION
+  Retrieves the specified properties about the connected site.
+
+.PARAMETER Properties
+  String array of properties to retrieve for the given users. Use * to retrieve all properties.
+
+.OUTPUTS
+  PSObject holding the requested properties of the connected site.
+#>
 function Get-MWSiteInfo
 {
   [CmdletBinding()]
@@ -3722,7 +3764,7 @@ function Get-MWSiteInfo
       siprop = ($Properties.ToLower() -join '|')
     }
 
-    $Response = Invoke-MWApiRequest -Body $Body -Method GET -IgnoreDisconnect -IgnoreAnonymous
+    $Response = Invoke-MWApiRequest -Body $Body -Method GET -IgnoreDisconnect
 
     $PSCustomObject = $Response.query | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
 
@@ -3837,6 +3879,28 @@ function Get-MWUnreadNotifications
 #endregion
 
 #region Get-MWUser
+<#
+.SYNOPSIS
+  Retrieves properties about the given users.
+
+.DESCRIPTION
+  Retrieves the specified properties about the given usernames or user IDs.
+
+.PARAMETER Name
+  String array of usernames to retrieve information about. Cannot be used alongside the -ID parameter.
+
+.PARAMETER ID
+  Integer array of user IDs to retrieve information about. Cannot be used alongside the -Name parameter.
+
+.PARAMETER Properties
+  String array of properties to retrieve for the given users. Use * to retrieve all properties.
+
+.PARAMETER AttachedWiki
+  Integer to indicate a wiki ID to check whether the user is attached to.
+
+.OUTPUTS
+  Array of PSObject holding the requested properties of the given users.
+#>
 function Get-MWUser
 {
   [CmdletBinding(DefaultParameterSetName = 'UserName')]
@@ -3912,9 +3976,7 @@ function Get-MWUser
     if ($JSON)
     { return $Response }
 
-    $PSCustomObject = $Response.query.users | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
-
-    return $PSCustomObject
+    return $Response.query.users | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
   }
 }
 #endregion
@@ -4150,8 +4212,6 @@ function Invoke-MWApiRequest
 
     # Used by Disconnect-MWSession and Get-MWCsrfToken to not renew expired CSRF/edit tokens
     [switch]$IgnoreDisconnect,
-    # Used by Disconnect-MWSession and Get-MWCsrfToken and Get-MWCurrentUser to suppress anonymous warnings
-    [switch]$IgnoreAnonymous,
     # Used by Disconnect-MWSession and Get-MWCsrfToken and Connect-MWSession to suppress adding asserings to the calls
     [switch]$NoAssert
   )
@@ -4218,7 +4278,7 @@ function Invoke-MWApiRequest
         }
       } else {
         $RequestParams   += @{
-          WebSession      = if ($IgnoreAnonymous) { (Get-MWSession -IgnoreAnonymous) } else { Get-MWSession }
+          WebSession      = Get-MWSession
         }
       }
 
@@ -4972,6 +5032,35 @@ function Set-MWPage
 #endregion
 
 #region Update-MWPage
+<#
+.SYNOPSIS
+  Purges the cache for the specified pages.
+
+.DESCRIPTION
+  Supports purging the cache for the specified pages through either
+  the regular method or as an empty edit (using the -NullEdit switch)
+  which can affect deeper backend values (e.g. extensions) in a way that
+  a normal purge might not.
+
+.PARAMETER Name
+  String array of page names to purge. Cannot be used alongside the -ID parameter.
+
+.PARAMETER ID
+  Int array of page IDs to purge. Cannot be used alongside the -Name parameter.
+
+.PARAMETER ForceLinkUpdate
+  Update the links tables and do other secondary data updates.
+
+.PARAMETER ForceRecursiveLinkUpdate
+  Update the links tables and do other secondary data updates,
+  and update the links tables for any page that uses this page as a template.
+
+.PARAMETER NullEdit
+  Forces a deeper update by performing an empty edit on the page.
+
+.OUTPUTS
+  Array of PSObject holding the purge result of the given pages.
+#>
 function Update-MWPage
 {
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
@@ -5026,7 +5115,7 @@ function Update-MWPage
     if ($null -ne $PagesFull.Count)
     { $Max = $PagesFull.Count }
 
-    # Null Edit
+    # -NullEdit
     if ($NullEdit)
     {
       Write-Verbose "[Update-MWPage] Performing null edits..."
@@ -5072,7 +5161,7 @@ function Update-MWPage
       }
     }
     
-    # Original implementation
+    # Regular page purge
     else
     {
       $Body = [ordered]@{
