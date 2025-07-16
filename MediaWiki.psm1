@@ -2120,7 +2120,7 @@ function Get-MWCargoQuery
 
     [parameter(ValueFromPipelineByPropertyName)]
     [Alias('ResultSize')]
-    [uint32]$Limit, # A limit on the number of results returned, corresponding to an SQL LIMIT clause
+    [uint32]$Limit = 0, # A limit on the number of results returned, corresponding to an SQL LIMIT clause
     
     <#
       Debug
@@ -2144,28 +2144,28 @@ function Get-MWCargoQuery
       fields = ($Table[0] + '._pageName=Name,' + $Table[0] + '._pageID=ID,' + $Table[0] + '._pageNamespace=NamespaceID')
     }
 
-    if ([string]::IsNullOrEmpty($Fields))
+    if (-not [string]::IsNullOrWhiteSpace($Fields))
     { $Body.fields = ($Body.fields + ',' + ($Fields -join ',')) }
 
-    if ([string]::IsNullOrEmpty($Where))
+    if (-not [string]::IsNullOrWhiteSpace($Where))
     { $Body.where = $Where }
 
-    if ([string]::IsNullOrEmpty($JoinOn))
+    if (-not [string]::IsNullOrWhiteSpace($JoinOn))
     { $Body.join_on = $JoinOn }
 
-    if ([string]::IsNullOrEmpty($GroupBy))
+    if (-not [string]::IsNullOrWhiteSpace($GroupBy))
     { $Body.group_by = $GroupBy }
 
-    if ([string]::IsNullOrEmpty($Having))
+    if (-not [string]::IsNullOrWhiteSpace($Having))
     { $Body.having = $Having }
 
-    if ([string]::IsNullOrEmpty($OrderBy))
+    if (-not [string]::IsNullOrWhiteSpace($OrderBy))
     { $Body.order_by = $OrderBy }
 
-    if ([string]::IsNullOrEmpty($Offset))
+    if (-not [string]::IsNullOrWhiteSpace($Offset))
     { $Body.offset = $Offset }
 
-    if ([string]::IsNullOrEmpty($Limit))
+    if ($Limit -gt 0)
     { $Body.limit = $Limit }
 
     $Response = Invoke-MWApiRequest -Body $Body -Method GET
@@ -4886,9 +4886,13 @@ function Set-MWPage
     if ($StartTimestamp)
     { $Body.starttimestamp = $StartTimestamp }
 
+    $RateLimit = if ($script:Cache.UserInfo.RateLimits.Edit.User)
+                    {$script:Cache.UserInfo.RateLimits.Edit.User}
+               else {$script:Cache.UserInfo.RateLimits.Edit.IP  }
+
     Write-Verbose "Editing page $Identity."
 
-    $Response = Invoke-MWApiRequest -Body $Body -Method POST
+    $Response = Invoke-MWApiRequest -Body $Body -Method POST -RateLimit $RateLimit.Seconds
 
     if ($JSON)
     { return $Response }
@@ -4935,7 +4939,6 @@ function Set-MWPage
 #endregion
 
 #region Update-MWPage
-# TODO: Rethink, reevaluate, redesign, reimplement
 function Update-MWPage
 {
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
@@ -4952,10 +4955,10 @@ function Update-MWPage
     [Alias('PageID')]
     [int[]]$ID,
 
-    [uint32]$Limit = 30,
     [switch]$ForceLinkUpdate,
     [switch]$ForceRecursiveLinkUpdate,
-    [switch]$NoWait,
+
+    # Use Set-MWPage to perform a deeper refresh by forcing a null commit on the page
     [switch]$NullEdit,
 
     <#
@@ -4978,82 +4981,91 @@ function Update-MWPage
       return $null
     }
 
-    [String[]]$Identities = @()
+    [String[]]$PagesFull = @()
     
     if ($Name)
-    { $Identities = $Name }
+    { $PagesFull = $Name }
 
     if ($ID)
-    { $Identities = $ID }
+    { $PagesFull = $ID }
 
-    $Offset = 0
-    
-    [String[]]$PagesFull = $Identities
     $Max = 1
-
     if ($null -ne $PagesFull.Count)
     { $Max = $PagesFull.Count }
 
-    $Body = [ordered]@{
-      action    = 'purge'
-      redirects = $true # Omit if false
-    }
-
-    if ($ForceLinkUpdate)
-    { $Body.forcelinkupdate = $true } # Omit if false
-
-    if ($ForceRecursiveLinkUpdate)
-    { $Body.forcerecursivelinkupdate = $true } # Omit if false
-
-    do
+    # Null Edit
+    if ($NullEdit)
     {
-      if ($Max -gt $Limit)
-      { Write-Progress -Activity "Purge in progress" -Status "$Offset pages completed..." -PercentComplete ($Offset / $Max * 100) }
+      Write-Verbose "[Update-MWPage] Performing null edits..."
 
-      $PagesLimited = @()
-      $ArrTemp      = @()
-      $Purged       = $null
+      $RateLimit = if ($script:Cache.UserInfo.RateLimits.Edit.User)
+                      {$script:Cache.UserInfo.RateLimits.Edit.User}
+                 else {$script:Cache.UserInfo.RateLimits.Edit.IP  }
 
-      for ($i = $Offset; $i -lt ($Offset + $Limit) -and $i -lt $Max; $i++)
-      { $PagesLimited += $PagesFull[$i] }
-
-      # Null Edit
-      if ($NullEdit)
+      ForEach ($Page in $PagesFull)
       {
-        Write-Verbose "[Update-MWPage] Performing null edits..."
+        if ($Name)
+        { $Response = Set-MWPage -Name $Page -Content "" -Summary "" -Append -Bot -NoCreate -JSON -WarningAction:SilentlyContinue }
+        else
+        { $Response = Set-MWPage   -ID $Page -Content "" -Summary "" -Append -Bot -NoCreate -JSON -WarningAction:SilentlyContinue }
 
-        ForEach ($Page in $PagesLimited)
+        if ($Response)
         {
-          $Result = $null
-
-          if ($Name)
-          { $Result = Set-MWPage -Name $Page -Content "" -Summary "" -Append -Bot -NoCreate -JSON -WarningAction:SilentlyContinue }
-          else
-          { $Result = Set-MWPage   -ID $Page -Content "" -Summary "" -Append -Bot -NoCreate -JSON -WarningAction:SilentlyContinue }
+          $ArrJSON += $Response
 
           $ObjectProperties = [ordered]@{
-            Namespace = (Get-MWNamespace -NamespaceName (($Result.edit.title -split ':')[0])).Name
-            Name      = $Result.edit.title
-            ID        = $Result.edit.pageid
-            Purged    = ($null -ne $Result.edit.result -and $Result.edit.result -eq 'Success')
+            Namespace = (Get-MWNamespace -NamespaceName (($Response.edit.title -split ':')[0])).Name
+            Name      = $null
+            ID        = $null
+            Purged    = ($null -ne $Response.edit.result -and $Response.edit.result -eq 'Success')
           }
 
-          if ($null -ne $Result.error.code -and $Result.error.code -eq 'missingtitle')
-          {
-            $ObjectProperties.Missing   = $true
+          if ($Name)
+          { $ObjectProperties.Name = $Page }
+          else
+          { $ObjectProperties.ID   = $Page }
 
-            Write-Warning "The page '$Page' does not exist."
-          }
+          if ($null -ne $Response.edit.title)
+          { $ObjectProperties.Name = $Response.edit.title }
 
-          $PageObject         = New-Object PSObject -Property $ObjectProperties
-          $ArrPSCustomObject += $PageObject
-          $ArrTemp           += $PageObject
+          if ($null -ne $Response.edit.pageid)
+          { $ObjectProperties.ID   = $Response.edit.pageid }
+
+          if ($null -ne $Response.errors.code -and $Response.errors.code -eq 'missingtitle')
+          { $ObjectProperties.Missing = $true }
+
+          $ArrPSCustomObject += New-Object PSObject -Property $ObjectProperties
         }
       }
-      
-      # Original implementation
-      else
+    }
+    
+    # Original implementation
+    else
+    {
+      $Body = [ordered]@{
+        action    = 'purge'
+        redirects = $true # Omit if false
+      }
+
+      if ($ForceLinkUpdate)
+      { $Body.forcelinkupdate = $true } # Omit if false
+
+      if ($ForceRecursiveLinkUpdate)
+      { $Body.forcerecursivelinkupdate = $true } # Omit if false
+
+      # Purge rate limits
+      $RateLimit = if ($script:Cache.UserInfo.RateLimits.Purge.User)
+                      {$script:Cache.UserInfo.RateLimits.Purge.User}
+                 else {$script:Cache.UserInfo.RateLimits.Purge.IP  }
+
+      $Offset = 0
+      do
       {
+        $PagesLimited = @()
+
+        for ($i = $Offset; $i -lt ($Offset + $RateLimit.Hits) -and $i -lt $Max; $i++)
+        { $PagesLimited += $PagesFull[$i] }
+
         if ($Name)
         { $Body.titles  = ($PagesLimited -join '|') }
         else
@@ -5061,7 +5073,7 @@ function Update-MWPage
 
         Write-Verbose "[Update-MWPage] Sending payload: $($PagesLimited -join '|')"
 
-        $Response = Invoke-MWApiRequest -Body $Body -Method POST -RateLimit ($script:Cache.UserInfo.RateLimits.purge.ip.seconds)
+        $Response = Invoke-MWApiRequest -Body $Body -Method POST -RateLimit $RateLimit.Seconds
 
         if ($Response)
         {
@@ -5071,14 +5083,15 @@ function Update-MWPage
           {
             $ObjectProperties = [ordered]@{
               Namespace = (Get-MWNamespace -NamespaceID $Page.ns).Name
+              Name      = $null
+              ID        = $null
+              Purged    = ($null -ne $Page.purged)
             }
 
             if ($Page.title)
             { $ObjectProperties.Name = $Page.title }
             else
             { $ObjectProperties.ID   = $Page.id }
-
-            $ObjectProperties.Purged = ($null -ne $Page.purged)
 
             if ($null -ne $Page.missing)
             {
@@ -5090,41 +5103,13 @@ function Update-MWPage
             if ($ForceLinkUpdate -or $ForceRecursiveLinkUpdate)
             { $ObjectProperties.LinkUpdated = ($null -ne $Page.linkupdate) }
 
-            $PageObject         = New-Object PSObject -Property $ObjectProperties
-            $ArrPSCustomObject += $PageObject
-            $ArrTemp           += $PageObject
+            $ArrPSCustomObject += New-Object PSObject -Property $ObjectProperties
           }
         }
-      }
 
-      $Purged = $ArrTemp | Where-Object { $_.Purged -eq $true -or $_.Missing -eq $true }
-
-      if ($null -ne $Purged)
-      {
-        if ($Purged.Count)
-        { $Purged = $Purged.Count }
-        else
-        { $Purged = 1 }
-      }
-      else
-      { $Purged = 0 }
-
-      $Offset = $Offset + $Purged
-
-      if ($NoWait -eq $false -and $Offset -lt $Max)
-      {
-        Write-Verbose "[Update-MWPage] $Offset/$Max have been purged so far."
-        Write-Progress -Activity "Purge in progress" -Status "$Offset pages completed..." -PercentComplete ($Offset / $Max * 100)
-
-        if ($NullEdit -eq $false)
-        {
-          Write-Warning "Estimated time remaining: ~$([math]::Round((($Max - $Offset) / $Limit) + 1)) minutes..."
-          #Start-Sleep -Seconds 65
-        }
-      }
-    } while ($NoWait -eq $false -and $Offset -lt $Max)
-
-    Write-Progress -Activity "Purge in progress" -Status "Ready" -Completed
+        $Offset += $RateLimit.Hits
+      } while ($Offset -lt $Max)
+    }
   }
 
   End
