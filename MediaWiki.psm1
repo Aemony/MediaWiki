@@ -280,18 +280,28 @@ $script:PropertyNamePascal    = @{
   messages                    = 'Messages'
   unreadcount                 = 'UnreadCount'
   editcount                   = 'EditCount'
+  latestcontrib               = 'LatestContribution'             # Renamed
   groups                      = 'Groups'
   rights                      = 'Rights'
+
+  # Rate Limits
   ratelimits                  = 'RateLimits'
-  changetag                   = 'ChangeTag'
-  emailuser                   = 'EmailUser'
-  mailpassword                = 'MailPassword'
-  purge                       = 'Purge'
-  linkpurge                   = 'LinkPurge'
-  renderfile                  = 'RenderFile'
- 'renderfile-nonstandard'     = 'RenderFileNonStandard'
-  stashedit                   = 'StashEdit'
-  upload                      = 'Upload'
+    changeemail                 = 'ChangeEmail'
+    confirmemail                = 'ConfirmEmail'
+    changetag                   = 'ChangeTag'
+    editcontentmodel            = 'EditContentModel'
+    emailuser                   = 'EmailUser'
+    mailpassword                = 'MailPassword'
+    move                        = 'Move'
+    purge                       = 'Purge'
+    linkpurge                   = 'LinkPurge'
+    renderfile                  = 'RenderFile'
+   'renderfile-nonstandard'     = 'RenderFileNonStandard'
+    rollback                    = 'Rollback'
+    stashedit                   = 'StashEdit'
+   'thanks-notification'        = 'ThanksNotification'           # Renamed
+    upload                      = 'Upload'
+
   user                        = 'User'
   ip                          = 'IP'
   hits                        = 'Hits'
@@ -2120,7 +2130,8 @@ function Get-MWCargoQuery
 
     [parameter(ValueFromPipelineByPropertyName)]
     [Alias('ResultSize')]
-    [uint32]$Limit = 0, # A limit on the number of results returned, corresponding to an SQL LIMIT clause
+    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
+    [string]$Limit = 1000, # A limit on the number of results returned, corresponding to an SQL LIMIT clause
     
     <#
       Debug
@@ -2128,7 +2139,10 @@ function Get-MWCargoQuery
     [switch]$JSON
   )
 
-  Begin { }
+  Begin
+  {
+    $ArrJSON = @()
+  }
 
   Process
   {
@@ -2142,7 +2156,14 @@ function Get-MWCargoQuery
       action = 'cargoquery'
       tables = $Table -join ','
       fields = ($Table[0] + '._pageName=Name,' + $Table[0] + '._pageID=ID,' + $Table[0] + '._pageNamespace=NamespaceID')
+      limit  = 'max'
     }
+
+    if ($Limit -eq 'Unlimited')
+    { $Limit = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
+
+    #if ($Limit -ne 0)
+    #{ $Body.limit = $Limit }
 
     if (-not [string]::IsNullOrWhiteSpace($Fields))
     { $Body.fields = ($Body.fields + ',' + ($Fields -join ',')) }
@@ -2165,18 +2186,30 @@ function Get-MWCargoQuery
     if (-not [string]::IsNullOrWhiteSpace($Offset))
     { $Body.offset = $Offset }
 
-    if ($Limit -gt 0)
-    { $Body.limit = $Limit }
+    $Response = $null
+    do
+    {
+      $Response = Invoke-MWApiRequest -Body $Body -Method GET
+      $ArrJSON += $Response
 
-    $Response = Invoke-MWApiRequest -Body $Body -Method GET
-    
-    if ($JSON)
-    { return $Response }
+      if ($ArrJSON.cargoquery.title.Count -ge $Limit)
+      {
+        $MoreAvailable = ($null -ne $Response.cargoquery -and $Response.cargoquery.Count -eq $Response.limits.cargoquery)
+        Write-MWWarningResultSize -InputObject $MoreAvailable -DefaultSize 1000 -ResultSize $Limit
+        break
+      }
 
-    return ($Response.cargoquery.title | ForEach-Object { ConvertFrom-HashtableToPSObject $_ })
+      $Body.offset = $Body.offset + $Response.limits.cargoquery
+    } while ($null -ne $Response.cargoquery -and $Response.cargoquery.Count -eq $Response.limits.cargoquery)
   }
 
-  End { }
+  End
+  {
+    if ($JSON)
+    { return $ArrJSON }
+
+    return (($ArrJSON.cargoquery.title | Select-Object -First $Limit) | ForEach-Object { ConvertFrom-HashtableToPSObject $_ })
+  }
 }
 #endregion
 
