@@ -4282,7 +4282,10 @@ function Invoke-MWApiRequest
     # Used by Disconnect-MWSession and Get-MWCsrfToken to not renew expired CSRF/edit tokens
     [switch]$IgnoreDisconnect,
     # Used by Disconnect-MWSession and Get-MWCsrfToken and Connect-MWSession to suppress adding asserings to the calls
-    [switch]$NoAssert
+    [switch]$NoAssert,
+
+    # Used to export errors/warnings to a JSON file
+    [switch]$WriteErrorsAndWarningsToDisk
   )
 
   Begin { }
@@ -4365,7 +4368,8 @@ function Invoke-MWApiRequest
         # Errors
         if ($null -ne $JsonObject.errors)
         {
-          $JsonObject.errors | ConvertTo-Json -Depth 100 | Out-File 'errors.json'
+          if ($WriteErrorsAndWarningsToDisk)
+          { $JsonObject.errors | ConvertTo-Json -Depth 100 | Out-File 'errors.json' }
 
           ForEach ($item in $JsonObject.errors)
           {
@@ -4382,7 +4386,8 @@ function Invoke-MWApiRequest
         # Warnings
         if ($null -ne $JsonObject.warnings)
         {
-          $JsonObject.warnings | ConvertTo-Json -Depth 100 | Out-File 'warnings.json'
+          if ($WriteErrorsAndWarningsToDisk)
+          { $JsonObject.warnings | ConvertTo-Json -Depth 100 | Out-File 'warnings.json' }
 
           ForEach ($item in $JsonObject.warnings)
           {
