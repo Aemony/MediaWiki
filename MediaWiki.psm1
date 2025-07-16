@@ -3338,6 +3338,31 @@ function Get-MWLink
 #endregion
 
 #region Get-MWNamespace
+<#
+.SYNOPSIS
+  Retrieves the namespaces of the site.
+
+.DESCRIPTION
+  Retrieves the registered "positive" namespaces of the site, and can optionally include the "negative" special namespaces.
+
+.PARAMETER NamespaceName
+  Name of the namespace to retrieve. Cannot be used alongside the -Name parameter.
+
+.PARAMETER NamespaceID
+  ID of the namespace to retrieve. Cannot be used alongside the -ID parameter.
+
+.PARAMETER All
+  Returns all registered namespaces.
+
+.PARAMETER IncludeNegative
+  Switch used to indicate that any negative special namespaces should be included.
+
+.PARAMETER PageName
+  Extracts and returns the details of a namespace from a given page name.
+
+.OUTPUTS
+  Array of PSObject holding the generic information about the given namespaces.
+#>
 function Get-MWNamespace
 {
   [CmdletBinding(DefaultParameterSetName = 'All')]
@@ -3424,6 +3449,19 @@ function Get-MWNamespace
 #endregion
 
 #region Get-MWNamespacePage
+<#
+.SYNOPSIS
+  Retrieve pages belonging to the given namespace.
+
+.PARAMETER Name
+  Name of the namespace to retrieve pages from.
+
+.PARAMETER ResultSize
+  Limit the returned results. Defaults to 1000.
+
+.OUTPUTS
+  Returns a PSObject array containing pages of the given namespace.
+#>
 function Get-MWNamespacePage
 {
   [CmdletBinding()]
@@ -3458,6 +3496,37 @@ function Get-MWNamespacePage
 #endregion
 
 #region Get-MWPage
+<#
+.SYNOPSIS
+  Retrieves a page.
+
+.DESCRIPTION
+  Retrieves the contents of the given page and any specified properties.
+
+.PARAMETER Name
+  Name of the page to retrieve. Cannot be used alongside the -Name parameter.
+
+.PARAMETER ID
+  ID of the page to retrieve. Cannot be used alongside the -ID parameter.
+
+.PARAMETER Properties
+  String array of properties to retrieve for the given users. Use * to retrieve all properties.
+
+.PARAMETER ParsedText
+  Switch used to indicate the parsed HTML text of the page should be returned.
+
+.PARAMETER Wikitext
+  Switch used to indicate the original wikitext of the page should be returned.
+
+.PARAMETER FollowRedirects
+  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+.PARAMETER Information
+  Switch to retrieve additional information about the given page, using a subcall to Get-MWPageInfo.
+
+.OUTPUTS
+  PSObject holding the requested properties of the given page.
+#>
 function Get-MWPage
 {
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
@@ -3584,7 +3653,7 @@ function Get-MWPage
   Integer array of page IDs to retrieve information about. Cannot be used alongside the -Name parameter.
 
 .PARAMETER FollowRedirects
-  Retrieves information about the target pages of any given redirect page, instead of the redirect page itself.
+  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
 
 .OUTPUTS
   Returns a PSObject array containing information about the given pages.
