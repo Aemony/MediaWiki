@@ -1136,25 +1136,40 @@ function Write-MWWarningResultSize
 #region Add-MWPage
 <#
 .SYNOPSIS
-  Adds a new page on the site.
+  Appends content to an existing page.
+
+.DESCRIPTION
+  Appends (or optionally prepends) content to an existing page.
 
 .PARAMETER Name
-  Name of the page to be created.
+  Name of the page to edit. Cannot be used alongside the -Name parameter.
+
+.PARAMETER ID
+  ID of the page to edit. Cannot be used alongside the -ID parameter.
 
 .PARAMETER Summary
   A short summary to attach to the edit.
 
 .PARAMETER Content
-  Contents of the new page.
+  Contents to add to the page.
 
 .PARAMETER Wikitext
   Alias for the -Content parameter.
 
+.PARAMETER Prepend
+  Switch used to indicate that the specified -Content should be prepended to the page.
+
+.PARAMETER BaseRevisionID
+  ID of the base revision, used to detect edit conflicts.
+
+.PARAMETER BaseTimestamp
+  Timestamp of the base revision, used to detect edit conflicts.
+
+.PARAMETER StartTimestamp
+  Timestamp when the editing process began, used to detect edit conflicts.
+
 .PARAMETER Watchlist
   Defines whether to add the page to the user's watchlist or not.
-
-.PARAMETER Recreate
-  Switch used to indicate that the target page should be recreated if it has been deleted.
 
 .PARAMETER Bot
   Switch used to indicate the edit was performed by a bot.
@@ -1171,7 +1186,6 @@ function Write-MWWarningResultSize
 .OUTPUTS
   Returns a PSObject object containing the results of the edit.
 #>
-Set-Alias -Name New-MWPage -Value Add-MWPage
 function Add-MWPage
 {
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
@@ -1184,7 +1198,11 @@ function Add-MWPage
     [Alias('Title', 'Identity', 'PageName')]
     [string]$Name,
 
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Alias('PageID')]
+    [uint32]$ID,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
     [AllowEmptyString()]
     [string]$Summary,
 
@@ -1197,14 +1215,26 @@ function Add-MWPage
     [string]$Wikitext,
 
     <#
+      Append / Prepend
+    #>
+    #[Alias('AppendText')]
+    #[switch]$Append, (default)
+
+    [Alias('PrependText')]
+    [switch]$Prepend,
+
+    <#
+      Verification
+    #>
+    [Alias('BaseRevID')]
+    [uint32]$BaseRevisionID,
+    [string]$BaseTimestamp,
+    [string]$StartTimestamp,
+
+    <#
       Watchlist
     #>
     [Watchlist]$Watchlist = [Watchlist]::Preferences,
-
-    <#
-      Page related stuff
-    #>
-    [switch]$Recreate,
 
     <#
       Tags applied to the edit
@@ -1212,6 +1242,7 @@ function Add-MWPage
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
+    [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
     [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
@@ -1220,13 +1251,10 @@ function Add-MWPage
     [switch]$JSON
   )
 
-  Begin {
-    if ($ResultSize -eq 'Unlimited')
-    { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
-  }
+  Begin { }
 
-  Process {
-    
+  Process
+  {
     if ($null -eq $script:Config.URI)
     {
       Write-Warning "Not connected to a MediaWiki instance."
@@ -1239,15 +1267,27 @@ function Add-MWPage
       return $null
     }
 
+    if (-not $Content -and -not $Wikitext)
+    {
+      Write-Warning "Content must be specified!"
+      return $null
+    }
+
     if ($Wikitext)
     { $Content = $Wikitext }
 
-    $Parameters  = @{
-      Name       = $Name
-      Watchlist  = $Watchlist
-      CreateOnly = $true
-      JSON       = $JSON
+    $Parameters       = @{
+      Name            = $Name
+      Watchlist       = $Watchlist
+      NoCreate        = $true
+      FollowRedirects = $true
+      JSON            = $JSON
     }
+
+    if ($Prepend)
+    { $Parameters.Prepend = $Prepend }
+    else
+    { $Parameters.Append = $true }
 
     if ($Summary)
     { $Parameters.Summary = $Summary }
@@ -1255,8 +1295,14 @@ function Add-MWPage
     if ($Content)
     { $Parameters.Content = $Content }
 
-    if ($Recreate)
-    { $Parameters.Recreate = $Recreate }
+    if ($BaseRevisionID)
+    { $Parameters.BaseRevisionID = $BaseRevisionID }
+
+    if ($BaseTimestamp)
+    { $Parameters.BaseTimestamp = $BaseTimestamp }
+
+    if ($StartTimestamp)
+    { $Parameters.StartTimestamp = $StartTimestamp }
 
     if ($Bot)
     { $Parameters.Bot = $Bot }
@@ -1280,10 +1326,10 @@ function Add-MWPage
 #region Add-MWSection
 <#
 .SYNOPSIS
-  Adds a new section to the given page.
+  Appends content to an existing section on the given page.
 
 .DESCRIPTION
-  The cmdlet is a front for Set-MWPage that makes it easier to add a new section to an existing page.
+  The cmdlet is a front for Set-MWPage that makes it easier to add new text to an existing section on pages.
 
 .PARAMETER Name
   Name of the page to edit. Cannot be used alongside the -Name parameter.
@@ -1295,25 +1341,16 @@ function Add-MWPage
   A short summary to attach to the edit.
 
 .PARAMETER Content
-  Contents of the new section.
+  Content to append to the specified section.
 
 .PARAMETER Wikitext
   Alias for the -Content parameter.
 
-.PARAMETER SectionID
-  The section index to edit.
-
-.PARAMETER New
-  Switch used to indicate that a new section should be added.
-
-.PARAMETER SectionTitle
-  The title of the new section.
-
-.PARAMETER Append
-  Switch used to indicate that the specified -Content should be appended to the specified -SectionID.
+.PARAMETER Index
+  The section index to edit, retrieved through Get-MWPage.
 
 .PARAMETER Prepend
-  Switch used to indicate that the specified -Content should be prepended to the specified -SectionID.
+  Switch used to indicate that the content should be prepended before the header of the specified section.
 
 .PARAMETER BaseRevisionID
   ID of the base revision, used to detect edit conflicts.
@@ -1352,18 +1389,16 @@ function Add-MWSection
     <#
       Core parameters
     #>
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'NewSectionName', Position=0)]
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'OldSectionName', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string]$Name,
 
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'NewSectionID', Position=0)]
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'OldSectionID', Position=0)]
-    [Alias("PageID")]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Alias('PageID')]
     [uint32]$ID,
 
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
+    [Parameter(ValueFromPipelineByPropertyName)]
     [AllowEmptyString()]
     [string]$Summary,
 
@@ -1378,40 +1413,28 @@ function Add-MWSection
     <#
       Section based stuff
     #>
-    [Parameter(ParameterSetName = 'OldSectionName')]
-    [Parameter(ParameterSetName = 'OldSectionID')]
-    [Alias("HeaderID")]
-    $SectionID = $null,
-
-    [Parameter(ParameterSetName = 'NewSectionName')]
-    [Parameter(ParameterSetName = 'NewSectionID')]
-    [switch]$New, # New section
-
-    [Parameter(ParameterSetName = 'NewSectionName')]
-    [Parameter(ParameterSetName = 'NewSectionID')]
-    [Alias("HeaderTitle")]
-    [string]$SectionTitle,
+    [Parameter(Mandatory)]
+    [Alias('SectionIndex')]
+    $Index,
 
     <#
       Append / Prepend
     #>
     # Add this text to the end of the page or section. Overrides text.
     # Use section=new to append a new section, rather than this parameter. 
-    [Alias('AppendText')]
-    [switch]$Append,
+    #[Alias('AppendText')]
+    #[switch]$Append, (default)
 
-    # Add this text to the beginning of the page or section. Overrides text.
+    # Add text before the section title.
     [Alias('PrependText')]
     [switch]$Prepend,
 
     <#
       Verification
     #>
-    [Alias("BaseRevID")]
+    [Alias('BaseRevID')]
     [uint32]$BaseRevisionID,
-
     [string]$BaseTimestamp,
-    
     [string]$StartTimestamp,
 
     <#
@@ -1430,6 +1453,7 @@ function Add-MWSection
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
+    [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
     [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
@@ -1443,8 +1467,8 @@ function Add-MWSection
     { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
   }
 
-  Process {
-    
+  Process
+  {
     if ($null -eq $script:Config.URI)
     {
       Write-Warning "Not connected to a MediaWiki instance."
@@ -1457,13 +1481,24 @@ function Add-MWSection
       return $null
     }
 
+    if (-not $Content -and -not $Wikitext)
+    {
+      Write-Warning "Content must be specified!"
+      return $null
+    }
+
     if ($Wikitext)
     { $Content = $Wikitext }
 
-    $Parameters = @{
-      Section   = $true
-      NoCreate  = $true
-      JSON      = $JSON
+    if ($Prepend -and $Content -notmatch "\n$")
+    { $Content += "`n" }
+
+    $Parameters    = @{
+      Section      = $true
+      SectionIndex = $Index
+      Content      = $Content
+      NoCreate     = $true
+      JSON         = $JSON
     }
 
     if ($Name)
@@ -1475,24 +1510,12 @@ function Add-MWSection
     if ($Summary)
     { $Parameters.Summary = $Summary }
 
-    if ($Content)
-    { $Parameters.Content = $Content }
-
-    # Section stuff
-
-    if ($SectionID)
-    { $Parameters.SectionID = $SectionID }
-
-    if ($SectionTitle)
-    { $Parameters.SectionTitle = $SectionTitle }
-
     # Append/Prepend
-
-    if ($Append)
-    { $Parameters.Append = $Append }
 
     if ($Prepend)
     { $Parameters.Prepend = $Prepend }
+    else
+    { $Parameters.Append = $true }
 
     # Verification
 
@@ -1770,7 +1793,7 @@ function Connect-MWSession
     $script:Cache.UserInfo = Get-MWCurrentUser
 
     # Cache change tags
-    Get-MWChangeTag
+    Get-MWChangeTag | Out-Null
 
     Write-Host "Welcome " -ForegroundColor Yellow -NoNewline
 
@@ -2661,7 +2684,7 @@ function Get-MWCategoryMember
   [CmdletBinding(DefaultParameterSetName = 'CategoryName')]
   param (
     [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'CategoryName', Position=0)]
-    [Alias("Category", "Identity", "Group")]
+    [Alias('Category', 'Identity', 'Group')]
     [string]$Name,
 
     [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'CategoryID', Position=0)]
@@ -2957,9 +2980,10 @@ function Get-MWChangeTag
     
     [Parameter()]
     [ValidateSet('', '*', 'active', 'defined', 'description', 'displayname', 'hitcount', 'source')]
-    [string[]]$Properties = @(''),
+    [string[]]$Properties = @('active', 'description', 'displayname', 'source'),
 
-    [switch]$ManualOnly,
+    [switch]$Active,
+    [switch]$Manual,
 
     [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
     [string]$ResultSize = 1000,
@@ -3003,13 +3027,16 @@ function Get-MWChangeTag
 
     # Update the local cache
     if ($null -ne $PSCustomObject )
-    { $script:Cache.ChangeTag = ($PSCustomObject | Where-Object { $_.Source -eq 'manual' }).Clone() }
+    { $script:Cache.ChangeTag = ($PSCustomObject | Where-Object { $_.Source -eq 'manual' -and $_.Active -eq $true }).Name }
 
     if ($JSON)
     { return $Response }
 
-    if ($ManualOnly)
-    { $PSCustomObject = $PSCustomObject | Where-Object { $_.Source -eq 'manual' } }
+    if ($Active)
+    { $PSCustomObject = ($PSCustomObject | Where-Object { $_.Active -eq $true }) }
+
+    if ($Manual)
+    { $PSCustomObject = ($PSCustomObject | Where-Object { $_.Source -eq 'manual' }) }
 
     return $PSCustomObject
   }
@@ -4506,11 +4533,11 @@ function Get-MWUser
     #>
     [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'UserName', Position=0)]
     [ValidateNotNullOrEmpty()]
-    [Alias("UserName")]
+    [Alias('UserName')]
     [string[]]$Name,
 
     [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'UserID', Position=0)]
-    [Alias("UserID")]
+    [Alias('UserID')]
     [int[]]$ID,
 
     # Use * to include all properties
@@ -5078,6 +5105,370 @@ function Move-MWPage
 }
 #endregion
 
+#region New-MWPage
+<#
+.SYNOPSIS
+  Creates a new page on the site.
+
+.PARAMETER Name
+  Name of the page to be created.
+
+.PARAMETER Summary
+  A short summary to attach to the edit.
+
+.PARAMETER Content
+  Contents of the new page.
+
+.PARAMETER Wikitext
+  Alias for the -Content parameter.
+
+.PARAMETER Watchlist
+  Defines whether to add the page to the user's watchlist or not.
+
+.PARAMETER Recreate
+  Switch used to indicate that the target page should be recreated if it has been deleted.
+
+.PARAMETER Bot
+  Switch used to indicate the edit was performed by a bot.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a minor concern.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a major concern.
+
+.PARAMETER Tag
+  Tag the edit according to one or more tags available in Special:Tags
+
+.OUTPUTS
+  Returns a PSObject object containing the results of the edit.
+#>
+function New-MWPage
+{
+  [CmdletBinding(DefaultParameterSetName = 'PageName')]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('Title', 'Identity', 'PageName')]
+    [string]$Name,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
+    [string]$Summary,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [Alias('Text')]
+    [string]$Content,
+
+    # Alias for $Content, but in a way to support ValueFromPipelineByPropertyName
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [string]$Wikitext,
+
+    <#
+      Watchlist
+    #>
+    [Watchlist]$Watchlist = [Watchlist]::Preferences,
+
+    <#
+      Page related stuff
+    #>
+    [switch]$Recreate,
+
+    <#
+      Tags applied to the edit
+    #>
+    [switch]$Bot,
+    [switch]$Minor,
+    [switch]$Major,
+    [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
+    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    if ($Content -and $Wikitext)
+    {
+      Write-Warning "-Content and -Wikitext cannot be used at the same time!"
+      return $null
+    }
+
+    if (-not $Content -and -not $Wikitext)
+    {
+      Write-Warning "Content must be specified!"
+      return $null
+    }
+
+    if ($Wikitext)
+    { $Content = $Wikitext }
+
+    $Parameters  = @{
+      Name       = $Name
+      Watchlist  = $Watchlist
+      CreateOnly = $true
+      JSON       = $JSON
+    }
+
+    if ($Summary)
+    { $Parameters.Summary = $Summary }
+
+    if ($Content)
+    { $Parameters.Content = $Content }
+
+    if ($Recreate)
+    { $Parameters.Recreate = $Recreate }
+
+    if ($Bot)
+    { $Parameters.Bot = $Bot }
+
+    if ($Minor)
+    { $Parameters.Minor = $Minor }
+
+    if ($Major)
+    { $Parameters.Major = $Major }
+
+    if ($Tag)
+    { $Parameters.Tag = $Tag }
+
+    return Set-MWPage @Parameters
+  }
+
+  End { }
+}
+#endregion
+
+#region New-MWSection
+<#
+.SYNOPSIS
+  Adds a new section to the given page.
+
+.DESCRIPTION
+  The cmdlet is a front for Set-MWPage that makes it easier to add a new section to an existing page.
+
+.PARAMETER Name
+  Name of the page to edit. Cannot be used alongside the -Name parameter.
+
+.PARAMETER ID
+  ID of the page to edit. Cannot be used alongside the -ID parameter.
+
+.PARAMETER Summary
+  A short summary to attach to the edit.
+
+.PARAMETER Content
+  Contents of the new section.
+
+.PARAMETER Wikitext
+  Alias for the -Content parameter.
+
+.PARAMETER Title
+  The title of the new section.
+
+.PARAMETER BaseRevisionID
+  ID of the base revision, used to detect edit conflicts.
+
+.PARAMETER BaseTimestamp
+  Timestamp of the base revision, used to detect edit conflicts.
+
+.PARAMETER StartTimestamp
+  Timestamp when the editing process began, used to detect edit conflicts.
+
+.PARAMETER Watchlist
+  Defines whether to add the page to the user's watchlist or not.
+
+.PARAMETER FollowRedirects
+  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+.PARAMETER Bot
+  Switch used to indicate the edit was performed by a bot.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a minor concern.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a major concern.
+
+.PARAMETER Tag
+  Tag the edit according to one or more tags available in Special:Tags
+
+.OUTPUTS
+  Returns a PSObject object containing the results of the edit.
+#>
+function New-MWSection
+{
+  [CmdletBinding(DefaultParameterSetName = 'PageName')]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('Identity', 'PageName')]
+    [string]$Name,
+
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Alias('PageID')]
+    [uint32]$ID,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
+    [string]$Summary,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [Alias('Text')]
+    [string]$Content,
+
+    # Alias for $Content, but in a way to support ValueFromPipelineByPropertyName
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [string]$Wikitext,
+
+    <#
+      Section based stuff
+    #>
+    [Parameter(Mandatory)]
+    [Alias('HeaderTitle', 'SectionTitle')]
+    [string]$Title,
+
+    <#
+      Verification
+    #>
+    [Alias('BaseRevID')]
+    [uint32]$BaseRevisionID,
+    [string]$BaseTimestamp,
+    [string]$StartTimestamp,
+
+    <#
+      Watchlist
+    #>
+    [Watchlist]$Watchlist = [Watchlist]::Preferences,
+
+    <#
+      Page related stuff
+    #>
+    [switch]$FollowRedirects, # Resolve redirects?
+
+    <#
+      Tags applied to the edit
+    #>
+    [switch]$Bot,
+    [switch]$Minor,
+    [switch]$Major,
+    [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
+    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin {
+    if ($ResultSize -eq 'Unlimited')
+    { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
+  }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    if ($Content -and $Wikitext)
+    {
+      Write-Warning "-Content and -Wikitext cannot be used at the same time!"
+      return $null
+    }
+
+    if (-not $Content -and -not $Wikitext)
+    {
+      Write-Warning "Content must be specified!"
+      return $null
+    }
+
+    if ($Wikitext)
+    { $Content = $Wikitext }
+
+    $Parameters = @{
+      Section   = $true
+      NoCreate  = $true
+      JSON      = $JSON
+    }
+
+    if ($Name)
+    { $Parameters.Name = $Name }
+
+    if ($ID)
+    { $Parameters.ID = $ID }
+
+    if ($Summary)
+    { $Parameters.Summary = $Summary }
+
+    if ($Content)
+    { $Parameters.Content = $Content }
+
+    # Section stuff
+
+    if ($Title)
+    { $Parameters.SectionTitle = $Title }
+
+    # Verification
+
+    if ($BaseRevisionID)
+    { $Parameters.BaseRevisionID = $BaseRevisionID }
+
+    if ($BaseTimestamp)
+    { $Parameters.BaseTimestamp = $BaseTimestamp }
+
+    if ($StartTimestamp)
+    { $Parameters.StartTimestamp = $StartTimestamp }
+
+    # Watchlist
+
+    if ($Watchlist)
+    { $Parameters.Watchlist = $Watchlist }
+
+    # Page stuff
+
+    if ($FollowRedirects)
+    { $Parameters.FollowRedirects = $FollowRedirects }
+
+    # Edit tags
+
+    if ($Bot)
+    { $Parameters.Bot = $Bot }
+
+    if ($Minor)
+    { $Parameters.Minor = $Minor }
+
+    if ($Major)
+    { $Parameters.Major = $Major }
+
+    if ($Tag)
+    { $Parameters.Tag = $Tag }
+
+    Set-MWPage @Parameters
+  }
+
+  End { }
+}
+#endregion
+
 #region Remove-MWPage
 function Remove-MWPage
 {
@@ -5088,11 +5479,11 @@ function Remove-MWPage
     #>
     [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
-    [Alias("Title", "Identity", "PageName")]
+    [Alias('Title', 'Identity', 'PageName')]
     [string[]]$Name,
 
     [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
-    [Alias("PageID")]
+    [Alias('PageID')]
     [int[]]$ID,
 
     [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
@@ -5329,17 +5720,17 @@ function Search-MWPage
 .PARAMETER Section
   Switch used to indicate that the edit concerns section should be added.
 
-.PARAMETER SectionID
+.PARAMETER SectionIndex
   The section index to edit. If omitted, a new section will be created.
 
 .PARAMETER SectionTitle
   The title of the new section.
 
 .PARAMETER Append
-  Switch used to indicate that the specified -Content should be appended to the page or specified -SectionID.
+  Switch used to indicate that the specified -Content should be appended to the page or specified -SectionIndex.
 
 .PARAMETER Prepend
-  Switch used to indicate that the specified -Content should be prepended to the page or specified -SectionID.
+  Switch used to indicate that the specified -Content should be prepended to the page or specified -SectionIndex.
 
 .PARAMETER BaseRevisionID
   ID of the base revision, used to detect edit conflicts.
@@ -5393,10 +5784,10 @@ function Set-MWPage
     [string]$Name,
 
     [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
-    [Alias("PageID")]
+    [Alias('PageID')]
     [uint32]$ID,
 
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
+    [Parameter(ValueFromPipelineByPropertyName)]
     [AllowEmptyString()]
     [string]$Summary,
 
@@ -5411,13 +5802,8 @@ function Set-MWPage
     <#
       Section based stuff
     #>
-    [Alias("Header")]
     [switch]$Section,
-
-    [Alias("HeaderID")]
-    $SectionID = $null,
-
-    [Alias("HeaderTitle")]
+    $SectionIndex = $null,
     [string]$SectionTitle,
 
     <#
@@ -5432,11 +5818,9 @@ function Set-MWPage
     <#
       Verification
     #>
-    [Alias("BaseRevID")]
+    [Alias('BaseRevID')]
     [uint32]$BaseRevisionID,
-
     [string]$BaseTimestamp,
-    
     [string]$StartTimestamp,
 
     <#
@@ -5483,20 +5867,25 @@ function Set-MWPage
       return $null
     }
 
+    if (-not $Content -and -not $Wikitext)
+    {
+      Write-Warning "Content must be specified!"
+      return $null
+    }
+
     if ($Wikitext)
     { $Content = $Wikitext }
 
     $PSCustomObject = @()
     $JoinedTags     = ''
 
-    if ($PSBoundParameters.ContainsKey('Tags'))
+    if ($Tag)
     { $JoinedTags = $Tag -join '|' }
 
     $Page = $null
 
     $Body = [ordered]@{
       action    = 'edit'
-      summary   = $Summary
       watchlist = $Watchlist.ToString().ToLower()
       token     = (Get-MWCsrfToken)
     }
@@ -5506,10 +5895,13 @@ function Set-MWPage
     else
     { $Body.title = $Name }
 
+    if ($Summary)
+    { $Body.summary = $Summary }
+
     if ($Section)
     {
-      if ($null -ne $SectionID)
-      { $Body.section = $SectionID } # Assume section id (or 'new')
+      if ($null -ne $SectionIndex)
+      { $Body.section = $SectionIndex } # Assume section index (or 'new')
       else
       { $Body.section = 'new' } # Omit if false
 
