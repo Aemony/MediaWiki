@@ -4055,8 +4055,11 @@ function Get-MWNamespacePage
 .PARAMETER ID
   ID of the page to retrieve. Cannot be used alongside the -ID parameter.
 
+.PARAMETER Index
+  Retrieve the contents of a single section using its index identifier, as retrieved through a regular Get-MWPage call.
+
 .PARAMETER Properties
-  String array of properties to retrieve for the given users. Use * to retrieve all properties.
+  String array of properties to retrieve for the given page. Use * to retrieve all properties.
 
 .PARAMETER ParsedText
   Switch used to indicate the parsed HTML text of the page should be returned.
@@ -4088,6 +4091,11 @@ function Get-MWPage
     [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int]$ID,
+
+    <#
+      Section based stuff
+    #>
+    $SectionIndex,
 
     # MediaWiki Default: text|langlinks|categories|links|templates|images|externallinks|sections|revid|displaytitle|iwlinks|properties|parsewarnings
     [ValidateSet('', '*', 'Categories', 'CategoriesHtml', 'DisplayTitle', 'EncodedJSConfigVars', 'ExternalLinks', 'HeadHtml', 'Images', 'Indicators', 'IwLinks', 'JSConfigVars', 'LangLinks', 'LimitReportData', 'LimitReportHtml', 'Links', 'Modules', 'ParseTree', 'ParseWarnings', 'Properties', 'RevId', 'Sections', 'Templates', 'Text', 'Wikitext')]
@@ -4132,6 +4140,9 @@ function Get-MWPage
     { $Body.pageid = $ID }
     elseif ($Name)
     { $Body.page = $Name }
+
+    if (-not [string]::IsNullOrEmpty($SectionIndex))
+    { $Body.section = $SectionIndex }
 
     if (-not [string]::IsNullOrEmpty($Properties))
     {
@@ -4295,6 +4306,106 @@ Set-Alias -Name Get-MWRestrictionType -Value Get-MWProtectionType
 function Get-MWProtectionType
 {
   return $script:Cache.RestrictionType
+}
+#endregion
+
+#region Get-MWSection
+<#
+.SYNOPSIS
+  Retrieves a section of the given page.
+
+.DESCRIPTION
+  Retrieves the contents of the given page and any specified properties.
+
+.PARAMETER Name
+  Name of the page to retrieve. Cannot be used alongside the -Name parameter.
+
+.PARAMETER ID
+  ID of the page to retrieve. Cannot be used alongside the -ID parameter.
+
+.PARAMETER Index
+  Identifier of the section to retrieve the contents of; index is retrieved through Get-MWPage.
+
+.PARAMETER Properties
+  String array of properties to retrieve for the given page. Use * to retrieve all properties.
+
+.PARAMETER ParsedText
+  Switch used to indicate the parsed HTML text of the page should be returned.
+
+.PARAMETER Wikitext
+  Switch used to indicate the original wikitext of the page should be returned.
+
+.PARAMETER FollowRedirects
+  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+.OUTPUTS
+  PSObject holding the requested properties of the given page.
+#>
+function Get-MWSection
+{
+  [CmdletBinding(DefaultParameterSetName = 'PageName')]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('Title', 'Identity', 'PageName')]
+    [string]$Name,
+
+    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Alias('PageID')]
+    [int]$ID,
+
+    <#
+      Section based stuff
+    #>
+    [Parameter(Mandatory)]
+    [Alias('SectionIndex')]
+    $Index,
+
+    # Passthrough
+    [string[]]$Properties,
+    [switch]$ParsedText,
+    [switch]$Wikitext,
+    [switch]$FollowRedirects,
+
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    $Parameters       = @{
+      SectionIndex    = $Index
+      ParsedText      = $ParsedText
+      Wikitext        = $Wikitext
+      FollowRedirects = $FollowRedirects
+      JSON            = $JSON
+    }
+
+    if ($ID)
+    { $Parameters.ID = $ID }
+    else
+    { $Parameters.Name = $Name }
+
+    if (-not [string]::IsNullOrEmpty($Properties))
+    { $Parameters.Properties = $Properties }
+
+    return Get-MWPage @Parameters
+  }
+
+  End { }
 }
 #endregion
 
