@@ -1244,7 +1244,6 @@ function Add-MWPage
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
     [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
@@ -1451,7 +1450,6 @@ function Add-MWSection
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
     [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
@@ -5288,7 +5286,6 @@ function New-MWPage
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
     [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
@@ -5468,7 +5465,6 @@ function New-MWSection
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
     [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
@@ -5662,7 +5658,6 @@ function Remove-MWSection
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
     [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
