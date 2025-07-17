@@ -1207,11 +1207,13 @@ function Add-MWPage
     [string]$Summary,
 
     [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
     [Alias('Text')]
     [string]$Content,
 
     # Alias for $Content, but in a way to support ValueFromPipelineByPropertyName
     [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
     [string]$Wikitext,
 
     <#
@@ -1264,12 +1266,6 @@ function Add-MWPage
     if ($Content -and $Wikitext)
     {
       Write-Warning "-Content and -Wikitext cannot be used at the same time!"
-      return $null
-    }
-
-    if (-not $Content -and -not $Wikitext)
-    {
-      Write-Warning "Content must be specified!"
       return $null
     }
 
@@ -1403,11 +1399,13 @@ function Add-MWSection
     [string]$Summary,
 
     [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
     [Alias('Text')]
     [string]$Content,
 
     # Alias for $Content, but in a way to support ValueFromPipelineByPropertyName
     [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
     [string]$Wikitext,
 
     <#
@@ -1462,10 +1460,7 @@ function Add-MWSection
     [switch]$JSON
   )
 
-  Begin {
-    if ($ResultSize -eq 'Unlimited')
-    { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
-  }
+  Begin { }
 
   Process
   {
@@ -1481,12 +1476,6 @@ function Add-MWSection
       return $null
     }
 
-    if (-not $Content -and -not $Wikitext)
-    {
-      Write-Warning "Content must be specified!"
-      return $null
-    }
-
     if ($Wikitext)
     { $Content = $Wikitext }
 
@@ -1496,7 +1485,6 @@ function Add-MWSection
     $Parameters    = @{
       Section      = $true
       SectionIndex = $Index
-      Content      = $Content
       NoCreate     = $true
       JSON         = $JSON
     }
@@ -1509,6 +1497,9 @@ function Add-MWSection
 
     if ($Summary)
     { $Parameters.Summary = $Summary }
+
+    if ($Content)
+    { $Parameters.Content = $Content }
 
     # Append/Prepend
 
@@ -1552,7 +1543,7 @@ function Add-MWSection
     if ($Tag)
     { $Parameters.Tag = $Tag }
 
-    Set-MWPage @Parameters
+    return Set-MWPage @Parameters
   }
 
   End { }
@@ -5016,6 +5007,7 @@ function Invoke-MWApiRequest
 #endregion
 
 #region Move-MWPage
+Set-Alias -Name Rename-MWPage -Value Move-MWPage
 function Move-MWPage
 {
   [CmdletBinding()]
@@ -5160,11 +5152,13 @@ function New-MWPage
     [string]$Summary,
 
     [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
     [Alias('Text')]
     [string]$Content,
 
     # Alias for $Content, but in a way to support ValueFromPipelineByPropertyName
     [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
     [string]$Wikitext,
 
     <#
@@ -5205,12 +5199,6 @@ function New-MWPage
     if ($Content -and $Wikitext)
     {
       Write-Warning "-Content and -Wikitext cannot be used at the same time!"
-      return $null
-    }
-
-    if (-not $Content -and -not $Wikitext)
-    {
-      Write-Warning "Content must be specified!"
       return $null
     }
 
@@ -5329,11 +5317,13 @@ function New-MWSection
     [string]$Summary,
 
     [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
     [Alias('Text')]
     [string]$Content,
 
     # Alias for $Content, but in a way to support ValueFromPipelineByPropertyName
     [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
     [string]$Wikitext,
 
     <#
@@ -5376,10 +5366,7 @@ function New-MWSection
     [switch]$JSON
   )
 
-  Begin {
-    if ($ResultSize -eq 'Unlimited')
-    { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
-  }
+  Begin { }
 
   Process
   {
@@ -5392,12 +5379,6 @@ function New-MWSection
     if ($Content -and $Wikitext)
     {
       Write-Warning "-Content and -Wikitext cannot be used at the same time!"
-      return $null
-    }
-
-    if (-not $Content -and -not $Wikitext)
-    {
-      Write-Warning "Content must be specified!"
       return $null
     }
 
@@ -5462,7 +5443,187 @@ function New-MWSection
     if ($Tag)
     { $Parameters.Tag = $Tag }
 
-    Set-MWPage @Parameters
+    return Set-MWPage @Parameters
+  }
+
+  End { }
+}
+#endregion
+
+#region Remove-MWSection
+<#
+.SYNOPSIS
+  Removes the specified section on the given page.
+
+.DESCRIPTION
+  The cmdlet is a front for Set-MWPage that makes it easier to add new text to an existing section on pages.
+
+.PARAMETER Name
+  Name of the page to edit. Cannot be used alongside the -Name parameter.
+
+.PARAMETER ID
+  ID of the page to edit. Cannot be used alongside the -ID parameter.
+
+.PARAMETER Summary
+  A short summary to attach to the edit.
+
+.PARAMETER Index
+  The section index to remove, retrieved through Get-MWPage.
+
+.PARAMETER BaseRevisionID
+  ID of the base revision, used to detect edit conflicts.
+
+.PARAMETER BaseTimestamp
+  Timestamp of the base revision, used to detect edit conflicts.
+
+.PARAMETER StartTimestamp
+  Timestamp when the editing process began, used to detect edit conflicts.
+
+.PARAMETER Watchlist
+  Defines whether to add the page to the user's watchlist or not.
+
+.PARAMETER FollowRedirects
+  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+.PARAMETER Bot
+  Switch used to indicate the edit was performed by a bot.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a minor concern.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a major concern.
+
+.PARAMETER Tag
+  Tag the edit according to one or more tags available in Special:Tags
+
+.OUTPUTS
+  Returns a PSObject object containing the results of the edit.
+#>
+function Remove-MWSection
+{
+  [CmdletBinding(DefaultParameterSetName = 'PageName')]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('Title', 'Identity', 'PageName')]
+    [string]$Name,
+
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Alias('PageID')]
+    [uint32]$ID,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
+    [string]$Summary,
+
+    <#
+      Section based stuff
+    #>
+    [Parameter(Mandatory)]
+    [Alias('SectionIndex')]
+    $Index,
+
+    <#
+      Verification
+    #>
+    [Alias('BaseRevID')]
+    [uint32]$BaseRevisionID,
+    [string]$BaseTimestamp,
+    [string]$StartTimestamp,
+
+    <#
+      Watchlist
+    #>
+    [Watchlist]$Watchlist = [Watchlist]::Preferences,
+
+    <#
+      Page related stuff
+    #>
+    [switch]$FollowRedirects, # Resolve redirects?
+
+    <#
+      Tags applied to the edit
+    #>
+    [switch]$Bot,
+    [switch]$Minor,
+    [switch]$Major,
+    [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
+    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    $Parameters    = @{
+      Section      = $true
+      SectionIndex = $Index
+     #SectionTitle = '' # Remove the header
+      Content      = '' # Remove the body
+      NoCreate     = $true
+      JSON         = $JSON
+    }
+
+    if ($Name)
+    { $Parameters.Name = $Name }
+
+    if ($ID)
+    { $Parameters.ID = $ID }
+
+    if ($Summary)
+    { $Parameters.Summary = $Summary }
+
+    # Verification
+
+    if ($BaseRevisionID)
+    { $Parameters.BaseRevisionID = $BaseRevisionID }
+
+    if ($BaseTimestamp)
+    { $Parameters.BaseTimestamp = $BaseTimestamp }
+
+    if ($StartTimestamp)
+    { $Parameters.StartTimestamp = $StartTimestamp }
+
+    # Watchlist
+
+    if ($Watchlist)
+    { $Parameters.Watchlist = $Watchlist }
+
+    # Page stuff
+
+    if ($FollowRedirects)
+    { $Parameters.FollowRedirects = $FollowRedirects }
+
+    # Edit tags
+
+    if ($Bot)
+    { $Parameters.Bot = $Bot }
+
+    if ($Minor)
+    { $Parameters.Minor = $Minor }
+
+    if ($Major)
+    { $Parameters.Major = $Major }
+
+    if ($Tag)
+    { $Parameters.Tag = $Tag }
+
+    return Set-MWPage @Parameters
   }
 
   End { }
@@ -5792,11 +5953,13 @@ function Set-MWPage
     [string]$Summary,
 
     [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
     [Alias('Text')]
     [string]$Content,
 
     # Alias for $Content, but in a way to support ValueFromPipelineByPropertyName
     [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
     [string]$Wikitext,
 
     <#
@@ -5867,12 +6030,6 @@ function Set-MWPage
       return $null
     }
 
-    if (-not $Content -and -not $Wikitext)
-    {
-      Write-Warning "Content must be specified!"
-      return $null
-    }
-
     if ($Wikitext)
     { $Content = $Wikitext }
 
@@ -5890,10 +6047,18 @@ function Set-MWPage
       token     = (Get-MWCsrfToken)
     }
 
+    $PageIdentity = ''
+
     if ($ID)
-    { $Body.pageid = $ID }
+    {
+      $PageIdentity = $ID
+      $Body.pageid = $ID
+    }
     else
-    { $Body.title = $Name }
+    {
+      $PageIdentity = $Name
+      $Body.title = $Name
+    }
 
     if ($Summary)
     { $Body.summary = $Summary }
@@ -5933,7 +6098,7 @@ function Set-MWPage
 
     if (-not [string]::IsNullOrEmpty($JoinedTags))
     { $Body.tags = $JoinedTags }
-
+    
     if ($Append)
     { $Body.appendtext = $Content }
     elseif ($Prepend)
@@ -5954,7 +6119,7 @@ function Set-MWPage
                     {$script:Cache.UserInfo.RateLimits.Edit.User}
                else {$script:Cache.UserInfo.RateLimits.Edit.IP  }
 
-    Write-Verbose "Editing page $Name$ID."
+    Write-Verbose "Editing page $PageIdentity."
 
     $Response = Invoke-MWApiRequest -Body $Body -Method POST -RateLimit $RateLimit.Seconds
 
@@ -5992,7 +6157,7 @@ function Set-MWPage
         $PSCustomObject = New-Object PSObject -Property $ObjectProperties
       }
       else
-      { Write-Warning "Error editing page $Name$ID." }
+      { Write-Warning "Error editing page $PageIdentity." }
     }
 
     return $PSCustomObject

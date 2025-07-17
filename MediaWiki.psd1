@@ -67,7 +67,7 @@
   
   # Functions to export from this module
   #FunctionsToExport = '*' #For performance, list functions explicitly
-  FunctionsToExport  = @('Add-*', 'Connect-MWSession', 'ConvertTo-*', 'Disconnect-MWSession', 'Find-*', 'Get-*', 'Invoke-*', 'Move-*', 'New-*', 'Remove-*', 'Search-*', 'Set-*', 'Show-*', 'Update-*')
+  FunctionsToExport  = @('Add-*', 'Connect-MWSession', 'ConvertTo-*', 'Disconnect-MWSession', 'Find-*', 'Get-*', 'Invoke-*', 'Move-*', 'New-*', 'Remove-*', 'Rename-*', 'Search-*', 'Set-*', 'Show-*', 'Update-*')
   
   # Cmdlets to export from this module
   CmdletsToExport = '*' 
