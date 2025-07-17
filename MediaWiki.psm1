@@ -496,6 +496,13 @@ $script:PropertyNamePascal    = @{
   searchinfo                  = 'SearchInfo'
   totalhits                   = 'TotalHits'
 
+  <# Change Tags #>
+  active                      = 'Active'
+  defined                     = 'Defined'
+  description                 = 'Description'
+  displayname                 = 'DisplayName'
+  hitcount                    = 'HitCount'
+
   <# Debug #>
   curtimestamp                = 'ServerTimestamp'                # Current server timestamp / Retrieved
 
@@ -905,6 +912,34 @@ function Rename-PropertyName
 }
 #endregion
 
+#region Test-MWChangeTag
+function Test-MWChangeTag
+{
+<#
+  .SYNOPSIS
+    Validation helper used to ensure the input is a valid change tag.
+  .DESCRIPTION
+    When used to validate a [string] parameter, the input object will only
+    be allowed if it matches a valid change tag.
+  .PARAMETER InputObject
+    An object to perform the validation on.
+  .EXAMPLE
+    [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
+    [string[]]$Tag
+#>
+  [CmdletBinding()]
+  param (
+    [Parameter(Mandatory)]
+    $InputObject
+  )
+
+  if ($InputObject -in $script:Cache.ChangeTag)
+  { $true }
+  else
+  { throw ('The argument "' + $InputObject + '" does not belong to the set "' + ($script:Cache.ChangeTag -join ',') + '". Supply an argument that is in the set and then try the command again.') }
+}
+#endregion
+
 #region Test-MWNamespace
 function Test-MWNamespace
 {
@@ -1118,6 +1153,9 @@ function Write-MWWarningResultSize
 .PARAMETER Watchlist
   Defines whether to add the page to the user's watchlist or not.
 
+.PARAMETER Recreate
+  Switch used to indicate that the target page should be recreated if it has been deleted.
+
 .PARAMETER Bot
   Switch used to indicate the edit was performed by a bot.
 
@@ -1127,12 +1165,13 @@ function Write-MWWarningResultSize
 .PARAMETER Minor
   Switch used to indicate the edit is of a major concern.
 
-.PARAMETER Tags
-  Tag the edit according to an available tag on the site.
+.PARAMETER Tag
+  Tag the edit according to one or more tags available in Special:Tags
 
 .OUTPUTS
   Returns a PSObject object containing the results of the edit.
 #>
+Set-Alias -Name New-MWPage -Value Add-MWPage
 function Add-MWPage
 {
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
@@ -1163,12 +1202,17 @@ function Add-MWPage
     [Watchlist]$Watchlist = [Watchlist]::Preferences,
 
     <#
+      Page related stuff
+    #>
+    [switch]$Recreate,
+
+    <#
       Tags applied to the edit
     #>
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [string[]]$Tags, # Tag the edit according to a tag available in Special:Tags
+    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
       Debug
@@ -1199,12 +1243,11 @@ function Add-MWPage
     { $Content = $Wikitext }
 
     $Parameters  = @{
+      Name       = $Name
+      Watchlist  = $Watchlist
       CreateOnly = $true
       JSON       = $JSON
     }
-
-    if ($Name)
-    { $Parameters.Name = $Name }
 
     if ($Summary)
     { $Parameters.Summary = $Summary }
@@ -1212,12 +1255,8 @@ function Add-MWPage
     if ($Content)
     { $Parameters.Content = $Content }
 
-    # Watchlist
-
-    if ($Watchlist)
-    { $Parameters.Watchlist = $Watchlist }
-
-    # Edit tags
+    if ($Recreate)
+    { $Parameters.Recreate = $Recreate }
 
     if ($Bot)
     { $Parameters.Bot = $Bot }
@@ -1228,10 +1267,10 @@ function Add-MWPage
     if ($Major)
     { $Parameters.Major = $Major }
 
-    if ($Tags)
-    { $Parameters.Tags = $Tags }
+    if ($Tag)
+    { $Parameters.Tag = $Tag }
 
-    Set-MWPage @Parameters
+    return Set-MWPage @Parameters
   }
 
   End { }
@@ -1300,8 +1339,8 @@ function Add-MWPage
 .PARAMETER Minor
   Switch used to indicate the edit is of a major concern.
 
-.PARAMETER Tags
-  Tag the edit according to an available tag on the site.
+.PARAMETER Tag
+  Tag the edit according to one or more tags available in Special:Tags
 
 .OUTPUTS
   Returns a PSObject object containing the results of the edit.
@@ -1391,7 +1430,7 @@ function Add-MWSection
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [string[]]$Tags, # Tag the edit according to a tag available in Special:Tags
+    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
       Debug
@@ -1487,8 +1526,8 @@ function Add-MWSection
     if ($Major)
     { $Parameters.Major = $Major }
 
-    if ($Tags)
-    { $Parameters.Tags = $Tags }
+    if ($Tag)
+    { $Parameters.Tag = $Tag }
 
     Set-MWPage @Parameters
   }
@@ -1729,6 +1768,9 @@ function Connect-MWSession
 
     # Cache user information (rate limits etc)
     $script:Cache.UserInfo = Get-MWCurrentUser
+
+    # Cache change tags
+    Get-MWChangeTag
 
     Write-Host "Welcome " -ForegroundColor Yellow -NoNewline
 
@@ -2883,6 +2925,93 @@ function Get-MWCategoryMember
     { return $ArrJSON }
 
     return (($ArrJSON.query.categorymembers | Select-Object -First $ResultSize) | ForEach-Object { ConvertFrom-HashtableToPSObject $_ })
+  }
+}
+#endregion
+
+#region Get-MWChangeTag
+<#
+.SYNOPSIS
+  Retrieves the recognized change tags of the site.
+
+.DESCRIPTION
+  Retrieves the specified properties about the change tags of the site.
+
+.PARAMETER Properties
+  String array of properties to retrieve for the change tags. Use * to retrieve all properties.
+
+.PARAMETER ManualOnly
+  Switch used to indicate that only manual change tags should be returned.
+
+.OUTPUTS
+  Array of PSObject holding the requested properties of the change tags.
+#>
+function Get-MWChangeTag
+{
+  [CmdletBinding(DefaultParameterSetName = 'UserName')]
+  param
+  (
+    <#
+      Core parameters
+    #>
+    
+    [Parameter()]
+    [ValidateSet('', '*', 'active', 'defined', 'description', 'displayname', 'hitcount', 'source')]
+    [string[]]$Properties = @(''),
+
+    [switch]$ManualOnly,
+
+    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
+    [string]$ResultSize = 1000,
+    
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process { }
+
+  End
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    if ($ResultSize -eq 'Unlimited')
+    { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
+
+    $Body = [ordered]@{
+      action  = 'query'
+      list    = 'tags'
+      tglimit = 'max'
+    }
+
+    if ($Properties -contains '*')
+    { $Properties = @('active', 'defined', 'description', 'displayname', 'hitcount', 'source') }
+
+    if ($Properties)
+    { $Body.tgprop = ($Properties.ToLower() -join '|') }
+
+    $Response = Invoke-MWApiContinueRequest -Body $Body -Method GET -ResultSize $ResultSize -Node1 'tags'
+
+    $PSCustomObject = ($Response.query.tags | Select-Object -First $ResultSize | ForEach-Object { ConvertFrom-HashtableToPSObject $_ })
+
+    # Update the local cache
+    if ($null -ne $PSCustomObject )
+    { $script:Cache.ChangeTag = ($PSCustomObject | Where-Object { $_.Source -eq 'manual' }).Clone() }
+
+    if ($JSON)
+    { return $Response }
+
+    if ($ManualOnly)
+    { $PSCustomObject = $PSCustomObject | Where-Object { $_.Source -eq 'manual' } }
+
+    return $PSCustomObject
   }
 }
 #endregion
@@ -4262,11 +4391,9 @@ function Get-MWSiteInfo
       $script:Cache.Namespace = $ArrNamespaces.Clone()
     }
 
-    # Return raw JSON if requested
     if ($JSON)
     { return $Response }
 
-    # Return a PSCustomObject
     return $PSCustomObject
   }
 }
@@ -4951,97 +5078,6 @@ function Move-MWPage
 }
 #endregion
 
-#region New-MWPage
-function New-MWPage
-{
-  [CmdletBinding()]
-  param (
-    <#
-      Core parameters
-    #>
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName, Position=0)]
-    [ValidateNotNullOrEmpty()]
-    [Alias('Title', 'Identity', 'PageName')]
-    [string]$Name,
-
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
-    [AllowEmptyString()]
-    [string]$Summary,
-
-    [Parameter(ValueFromPipelineByPropertyName)]
-    [Alias('Text')]
-    [string]$Content,
-
-    # Alias for $Content, but in a way to support ValueFromPipelineByPropertyName
-    [Parameter(ValueFromPipelineByPropertyName)]
-    [string]$Wikitext,
-
-    <#
-      Watchlist
-    #>
-    [Watchlist]$Watchlist = [Watchlist]::Preferences,
-
-    <#
-      Page related stuff
-    #>
-    [switch]$Recreate,
-
-    <#
-      Tags applied to the edit
-    #>
-    [switch]$Bot,
-    [switch]$Minor,
-    [switch]$Major,
-    [string[]]$Tags, # Tag the edit according to a tag available in Special:Tags
-
-    <#
-      Debug
-    #>
-    [switch]$JSON
-  )
-
-  Begin { }
-
-  Process
-  {
-    $Params = @{
-      Name       = $Name
-      Watchlist  = $Watchlist
-      CreateOnly = $true
-      JSON       = $JSON
-    }
-
-    if ($Content)
-    { $Params.Content = $Content }
-
-    if ($Wikitext)
-    { $Params.Wikitext = $Wikitext }
-
-    if ($Summary)
-    { $Params.Summary = $Summary }
-
-    if ($Recreate)
-    { $Params.Recreate = $Recreate }
-
-    if ($Bot)
-    { $Params.Bot = $Bot }
-
-    if ($Minor)
-    { $Params.Minor = $Minor }
-
-    if ($Major)
-    { $Params.Major = $Major }
-
-    if ($Tags)
-    { $Params.Tags = $Tags }
-
-    return Set-MWPage @Params
-  }
-
-  End { }
-}
-#endregion
-
 #region Remove-MWPage
 function Remove-MWPage
 {
@@ -5338,8 +5374,8 @@ function Search-MWPage
 .PARAMETER Minor
   Switch used to indicate the edit is of a major concern.
 
-.PARAMETER Tags
-  Tag the edit according to an available tag on the site.
+.PARAMETER Tag
+  Tag the edit according to one or more tags available in Special:Tags
 
 .OUTPUTS
   Returns a PSObject object containing the results of the edit.
@@ -5422,7 +5458,8 @@ function Set-MWPage
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [string[]]$Tags, # Tag the edit according to a tag available in Special:Tags
+    [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
+    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
       Debug
@@ -5453,7 +5490,7 @@ function Set-MWPage
     $JoinedTags     = ''
 
     if ($PSBoundParameters.ContainsKey('Tags'))
-    { $JoinedTags = $Tags -join '|' }
+    { $JoinedTags = $Tag -join '|' }
 
     $Page = $null
 
