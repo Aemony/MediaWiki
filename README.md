@@ -161,7 +161,8 @@ $Pages | Update-MWPage -Force
 * `Get-MWSiteInfo` - Retrieve general information about the site.
   * Interface for [meta=siteinfo](https://www.mediawiki.org/wiki/API:Siteinfo).
 
-**User information**
+**Users**
+* `Get-MWUser` - Retrieve information about a user.
 * `Get-MWCurrentUser` - Retrieve general information about the signed in user.
   * Interface for [meta=userinfo](https://www.mediawiki.org/wiki/API:Userinfo)
 * `Get-MWCurrentUserPreference` - Retrieve the perferences of the current user.
