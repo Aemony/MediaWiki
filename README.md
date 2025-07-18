@@ -34,7 +34,7 @@ changes throughout its code as I learn, rethink, and redesign components here an
    * To use a persistent config as a guest: `Connect-MWSession -Persistent -Guest`
    * To disconnect from an active session, use `Disconnect-MWSession`
 
-4. Once a connection has been established, use one of the supported [#Cmdlets|cmdlets].
+4. Once a connection has been established, use one of the supported [cmdlets](#Cmdlets).
 
 ## Examples
 
