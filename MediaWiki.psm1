@@ -1215,60 +1215,69 @@ function Write-MWWarningResultSize
 # --------------------------------------------------------------------------------------- #
 
 #region Add-MWPage
-<#
-.SYNOPSIS
-  Appends content to an existing page.
-
-.DESCRIPTION
-  Appends (or optionally prepends) content to an existing page.
-
-.PARAMETER Name
-  Name of the page to edit. Cannot be used alongside the -Name parameter.
-
-.PARAMETER ID
-  ID of the page to edit. Cannot be used alongside the -ID parameter.
-
-.PARAMETER Summary
-  A short summary to attach to the edit.
-
-.PARAMETER Content
-  Contents to add to the page.
-
-.PARAMETER NoNewline
-  Switch used to indicate that no newline should be created before/after the new content.
-
-.PARAMETER Prepend
-  Switch used to indicate that the specified -Content should be prepended to the page.
-
-.PARAMETER BaseRevisionID
-  ID of the base revision, used to detect edit conflicts.
-
-.PARAMETER BaseTimestamp
-  Timestamp of the base revision, used to detect edit conflicts.
-
-.PARAMETER StartTimestamp
-  Timestamp when the editing process began, used to detect edit conflicts.
-
-.PARAMETER Watchlist
-  Defines whether to add the page to the user's watchlist or not.
-
-.PARAMETER Bot
-  Switch used to indicate the edit was performed by a bot.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a minor concern.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a major concern.
-
-.PARAMETER Tags
-  Tag the edit according to one or more tags available in Special:Tags
-
-.OUTPUTS
-  Returns a PSObject object containing the results of the edit.
-#>
 function Add-MWPage
 {
+  <#
+  .SYNOPSIS
+    Appends content to an existing page.
+
+  .DESCRIPTION
+    Appends (or optionally prepends) content to an existing page.
+
+  .PARAMETER Name
+    Name of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER ID
+    ID of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER Summary
+    A short summary to attach to the edit.
+
+  .PARAMETER Content
+    Contents to add to the page.
+
+  .PARAMETER NoNewline
+    Switch used to indicate that no newline should be created before/after the new content.
+
+  .PARAMETER Prepend
+    Switch used to indicate that the specified -Content should be prepended to the page.
+
+  .PARAMETER BaseRevisionID
+    ID of the base revision, used to detect edit conflicts.
+
+  .PARAMETER BaseTimestamp
+    Timestamp of the base revision, used to detect edit conflicts.
+
+  .PARAMETER StartTimestamp
+    Timestamp when the editing process began, used to detect edit conflicts.
+
+  .PARAMETER Watchlist
+    Defines whether to add the page to the user's watchlist or not.
+
+  .PARAMETER Bot
+    Switch used to indicate the edit was performed by a bot.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a minor concern.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a major concern.
+
+  .PARAMETER Tags
+    Tag the edit according to one or more tags available in Special:Tags
+    
+  .INPUTS
+    Name (System.String) of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .INPUTS
+    ID (System.UInt32) of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .INPUTS
+    Summary (System.String) of the edit summary.
+
+  .OUTPUTS
+    Returns a PSObject object containing the results of the edit.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
     <#
@@ -1396,69 +1405,84 @@ function Add-MWPage
 #endregion
 
 #region Add-MWSection
-<#
-.SYNOPSIS
-  Appends content to an existing section on the given page.
-
-.DESCRIPTION
-  The cmdlet is a front for Set-MWPage that makes it easier to add new text to an existing section on pages.
-
-.PARAMETER Name
-  Name of the page to edit. Cannot be used alongside the -Name parameter.
-
-.PARAMETER FromTitle
-  Alias for the -Name parameter.
-
-.PARAMETER ID
-  ID of the page to edit. Cannot be used alongside the -ID parameter.
-
-.PARAMETER Summary
-  A short summary to attach to the edit.
-
-.PARAMETER Content
-  Content to append to the specified section.
-
-.PARAMETER NoNewline
-  Switch used to indicate that no newline should be created before/after the new content.
-
-.PARAMETER Index
-  The section index to edit, retrieved through Get-MWPage.
-
-.PARAMETER Prepend
-  Switch used to indicate that the content should be prepended before the header of the specified section.
-
-.PARAMETER BaseRevisionID
-  ID of the base revision, used to detect edit conflicts.
-
-.PARAMETER BaseTimestamp
-  Timestamp of the base revision, used to detect edit conflicts.
-
-.PARAMETER StartTimestamp
-  Timestamp when the editing process began, used to detect edit conflicts.
-
-.PARAMETER Watchlist
-  Defines whether to add the page to the user's watchlist or not.
-
-.PARAMETER FollowRedirects
-  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
-
-.PARAMETER Bot
-  Switch used to indicate the edit was performed by a bot.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a minor concern.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a major concern.
-
-.PARAMETER Tags
-  Tag the edit according to one or more tags available in Special:Tags
-
-.OUTPUTS
-  Returns a PSObject object containing the results of the edit.
-#>
 function Add-MWSection
 {
+  <#
+  .SYNOPSIS
+    Appends content to an existing section on the given page.
+
+  .DESCRIPTION
+    The cmdlet is a front for Set-MWPage that makes it easier to add new text to an existing section on pages.
+
+  .PARAMETER Name
+    Name of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER FromTitle
+    Alias for the -Name parameter.
+
+  .PARAMETER ID
+    ID of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER Summary
+    A short summary to attach to the edit.
+
+  .PARAMETER Content
+    Content to append to the specified section.
+
+  .PARAMETER NoNewline
+    Switch used to indicate that no newline should be created before/after the new content.
+
+  .PARAMETER Index
+    The section index to edit, retrieved through Get-MWPage.
+
+  .PARAMETER Prepend
+    Switch used to indicate that the content should be prepended before the header of the specified section.
+
+  .PARAMETER BaseRevisionID
+    ID of the base revision, used to detect edit conflicts.
+
+  .PARAMETER BaseTimestamp
+    Timestamp of the base revision, used to detect edit conflicts.
+
+  .PARAMETER StartTimestamp
+    Timestamp when the editing process began, used to detect edit conflicts.
+
+  .PARAMETER Watchlist
+    Defines whether to add the page to the user's watchlist or not.
+
+  .PARAMETER FollowRedirects
+    Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+  .PARAMETER Bot
+    Switch used to indicate the edit was performed by a bot.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a minor concern.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a major concern.
+
+  .PARAMETER Tags
+    Tag the edit according to one or more tags available in Special:Tags
+    
+  .INPUTS
+    Name (System.String) of the page to edit. Cannot be used alongside the -ID parameter.
+    
+  .INPUTS
+    FromTitle (System.String) as an alias for -Name.
+
+  .INPUTS
+    ID (System.UInt32) of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .INPUTS
+    Summary (System.String) of the edit summary.
+
+  .INPUTS
+    Index (System.UInt32) of the section to edit.
+
+  .OUTPUTS
+    Returns a PSObject object containing the results of the edit.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
     <#
@@ -1494,7 +1518,7 @@ function Add-MWSection
     #>
     [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
     [Alias('SectionIndex')]
-    $Index,
+    [uint32]$Index,
 
     <#
       Append / Prepend
@@ -1630,54 +1654,63 @@ function Add-MWSection
 #endregion
 
 #region Clear-MWPage
-<#
-.SYNOPSIS
-  Clears the contents of the specified page.
-
-.DESCRIPTION
-  The cmdlet is a front for Set-MWPage that makes it easier to clear a page.
-
-.PARAMETER Name
-  Name of the page to edit. Cannot be used alongside the -Name parameter.
-
-.PARAMETER ID
-  ID of the page to edit. Cannot be used alongside the -ID parameter.
-
-.PARAMETER Summary
-  A short summary to attach to the edit.
-
-.PARAMETER BaseRevisionID
-  ID of the base revision, used to detect edit conflicts.
-
-.PARAMETER BaseTimestamp
-  Timestamp of the base revision, used to detect edit conflicts.
-
-.PARAMETER StartTimestamp
-  Timestamp when the editing process began, used to detect edit conflicts.
-
-.PARAMETER Watchlist
-  Defines whether to add the page to the user's watchlist or not.
-
-.PARAMETER FollowRedirects
-  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
-
-.PARAMETER Bot
-  Switch used to indicate the edit was performed by a bot.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a minor concern.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a major concern.
-
-.PARAMETER Tags
-  Tag the edit according to one or more tags available in Special:Tags
-
-.OUTPUTS
-  Returns a PSObject object containing the results of the edit.
-#>
 function Clear-MWPage
 {
+  <#
+  .SYNOPSIS
+    Clears the contents of the specified page.
+
+  .DESCRIPTION
+    The cmdlet is a front for Set-MWPage that makes it easier to clear a page.
+
+  .PARAMETER Name
+    Name of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER ID
+    ID of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER Summary
+    A short summary to attach to the edit.
+
+  .PARAMETER BaseRevisionID
+    ID of the base revision, used to detect edit conflicts.
+
+  .PARAMETER BaseTimestamp
+    Timestamp of the base revision, used to detect edit conflicts.
+
+  .PARAMETER StartTimestamp
+    Timestamp when the editing process began, used to detect edit conflicts.
+
+  .PARAMETER Watchlist
+    Defines whether to add the page to the user's watchlist or not.
+
+  .PARAMETER FollowRedirects
+    Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+  .PARAMETER Bot
+    Switch used to indicate the edit was performed by a bot.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a minor concern.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a major concern.
+
+  .PARAMETER Tags
+    Tag the edit according to one or more tags available in Special:Tags
+
+  .INPUTS
+    Name (System.String) of the page to clear. Cannot be used with -ID.
+    
+  .INPUTS
+    ID (System.UInt32) of the page to clear. Cannot be used with -Name.
+
+  .INPUTS
+    Summary (System.String) of the edit summary.
+
+  .OUTPUTS
+    Returns a PSObject object containing the results of the edit.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
     <#
@@ -1796,60 +1829,75 @@ function Clear-MWPage
 #endregion
 
 #region Clear-MWSection
-<#
-.SYNOPSIS
-  Clears the contents of the specified section on the given page.
-
-.DESCRIPTION
-  The cmdlet is a front for Set-MWPage that makes it easier to clear a specific section.
-
-.PARAMETER Name
-  Name of the page to edit. Cannot be used alongside the -Name parameter.
-
-.PARAMETER FromTitle
-  Alias for the -Name parameter.
-
-.PARAMETER ID
-  ID of the page to edit. Cannot be used alongside the -ID parameter.
-
-.PARAMETER Summary
-  A short summary to attach to the edit.
-
-.PARAMETER Index
-  The section index to edit, retrieved through Get-MWPage.
-
-.PARAMETER BaseRevisionID
-  ID of the base revision, used to detect edit conflicts.
-
-.PARAMETER BaseTimestamp
-  Timestamp of the base revision, used to detect edit conflicts.
-
-.PARAMETER StartTimestamp
-  Timestamp when the editing process began, used to detect edit conflicts.
-
-.PARAMETER Watchlist
-  Defines whether to add the page to the user's watchlist or not.
-
-.PARAMETER FollowRedirects
-  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
-
-.PARAMETER Bot
-  Switch used to indicate the edit was performed by a bot.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a minor concern.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a major concern.
-
-.PARAMETER Tags
-  Tag the edit according to one or more tags available in Special:Tags
-
-.OUTPUTS
-  Returns a PSObject object containing the results of the edit.
-#>
 function Clear-MWSection
 {
+  <#
+  .SYNOPSIS
+    Clears the contents of the specified section on the given page.
+
+  .DESCRIPTION
+    The cmdlet is a front for Set-MWPage that makes it easier to clear a specific section.
+
+  .PARAMETER Name
+    Name of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER FromTitle
+    Alias for the -Name parameter.
+
+  .PARAMETER ID
+    ID of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER Summary
+    A short summary to attach to the edit.
+
+  .PARAMETER Index
+    The section index to edit, retrieved through Get-MWPage.
+
+  .PARAMETER BaseRevisionID
+    ID of the base revision, used to detect edit conflicts.
+
+  .PARAMETER BaseTimestamp
+    Timestamp of the base revision, used to detect edit conflicts.
+
+  .PARAMETER StartTimestamp
+    Timestamp when the editing process began, used to detect edit conflicts.
+
+  .PARAMETER Watchlist
+    Defines whether to add the page to the user's watchlist or not.
+
+  .PARAMETER FollowRedirects
+    Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+  .PARAMETER Bot
+    Switch used to indicate the edit was performed by a bot.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a minor concern.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a major concern.
+
+  .PARAMETER Tags
+    Tag the edit according to one or more tags available in Special:Tags
+    
+  .INPUTS
+    Name (System.String) of the page to edit. Cannot be used alongside the -ID parameter.
+    
+  .INPUTS
+    FromTitle (System.String) as an alias for -Name.
+
+  .INPUTS
+    ID (System.UInt32) of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .INPUTS
+    Summary (System.String) of the edit summary.
+
+  .INPUTS
+    Index (System.UInt32) of the section to edit.
+
+  .OUTPUTS
+    Returns a PSObject object containing the results of the edit.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
     <#
@@ -1878,7 +1926,7 @@ function Clear-MWSection
     #>
     [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
     [Alias('SectionIndex')]
-    $Index,
+    [uint32]$Index,
 
     <#
       Verification
@@ -2621,19 +2669,19 @@ function Find-MWFileDuplicate
     <#
       Core parameters
     #>
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('ImageName', 'FileName')]
     [string[]]$Name,
 
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int[]]$ID,
 
     [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
     [string]$ResultSize = 1000,
 
-    [parameter(ParameterSetName = 'All')]
+    [Parameter(ParameterSetName = 'All')]
     [switch]$All,
     
     <#
@@ -2735,93 +2783,6 @@ function Find-MWFileDuplicate
 }
 #endregion
 
-#region Find-MWRedirectOrphan
-# Finds all redirect pages which no other pages link to.
-function Find-MWRedirectOrphan
-{
-  [CmdletBinding()]
-  param (
-    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
-    [string]$ResultSize = 1000,
-    
-    <#
-      Debug
-    #>
-    [switch]$JSON
-  )
-
-  Begin {
-    $ArrJSON           = @()
-    $ArrPSCustomObject = @()
-  }
-
-  Process
-  {
-    if ($ResultSize -eq 'Unlimited')
-    { $ResultSize = [int32]::MaxValue }
-    # Quite costly operation, so throw the result size warning at the beginning
-    else
-    { Write-MWWarningResultSize -InputObject $true -DefaultSize 1000 -ResultSize $ResultSize }
-
-    $Pages = Find-MWPage -RedirectOnly -ResultSize Unlimited
-
-    ForEach ($Page in $Pages)
-    {
-      $Links = Get-MWBackLink -ID $Page.ID
-      if ($Links.Count -eq 0)
-      {
-        $Body = [ordered]@{
-          action    = 'query'
-          pageids   = $Page.ID
-          redirects = $true
-        }
-
-        $Response = Invoke-MWApiRequest -Body $Body -Method GET
-        $ArrJSON += $Response
-
-        if ($Redirects = $Response.query.redirects)
-        {
-          $Resolution = $Response.query.pages[0]
-
-          $ObjectProperties = [ordered]@{
-            ID           = $Page.ID
-            Name         = $Redirects[0].from # Name of the starting page
-
-            # Array of redirect hierarchy
-            Redirects    = $Redirects | Select-Object @{
-              Name       = 'Target'
-              Expression = { $_.to }
-            }, @{
-              Name       = 'Anchor'
-              Expression = { $_.tofragment }
-            }
-
-             # Final target of the redirect hierarchy
-            Resolved     = [ordered]@{
-              Namespace  = (Get-MWNamespace -NamespaceID $Resolution.ns).Name
-              Name       = $Resolution.title
-              ID         = $Resolution.pageid
-            }
-          }
-          $ArrPSCustomObject += New-Object PSObject -Property $ObjectProperties
-        }
-      }
-
-      if ($ArrPSCustomObject.Count -ge $ResultSize)
-      { break }
-    }
-  }
-
-  End
-  {
-    if ($JSON)
-    { return $ArrJSON }
-   
-    return $ArrPSCustomObject
-  }
-}
-#endregion
-
 #region Find-MWPage
 # Not to be mistaken for Search-MWPage!
 function Find-MWPage
@@ -2829,7 +2790,7 @@ function Find-MWPage
   [CmdletBinding(DefaultParameterSetName = 'None')]
   param
   (
-    [parameter(ValueFromPipelineByPropertyName, Position=0)]
+    [Parameter(ValueFromPipelineByPropertyName, Position=0)]
     [Alias('PageName', 'Prefix')]
     [string]$Name,
 
@@ -2990,6 +2951,93 @@ function Find-MWRedirect
 }
 #endregion
 
+#region Find-MWRedirectOrphan
+# Finds all redirect pages which no other pages link to.
+function Find-MWRedirectOrphan
+{
+  [CmdletBinding()]
+  param (
+    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
+    [string]$ResultSize = 1000,
+    
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin {
+    $ArrJSON           = @()
+    $ArrPSCustomObject = @()
+  }
+
+  Process
+  {
+    if ($ResultSize -eq 'Unlimited')
+    { $ResultSize = [int32]::MaxValue }
+    # Quite costly operation, so throw the result size warning at the beginning
+    else
+    { Write-MWWarningResultSize -InputObject $true -DefaultSize 1000 -ResultSize $ResultSize }
+
+    $Pages = Find-MWPage -RedirectOnly -ResultSize Unlimited
+
+    ForEach ($Page in $Pages)
+    {
+      $Links = Get-MWBackLink -ID $Page.ID
+      if ($Links.Count -eq 0)
+      {
+        $Body = [ordered]@{
+          action    = 'query'
+          pageids   = $Page.ID
+          redirects = $true
+        }
+
+        $Response = Invoke-MWApiRequest -Body $Body -Method GET
+        $ArrJSON += $Response
+
+        if ($Redirects = $Response.query.redirects)
+        {
+          $Resolution = $Response.query.pages[0]
+
+          $ObjectProperties = [ordered]@{
+            ID           = $Page.ID
+            Name         = $Redirects[0].from # Name of the starting page
+
+            # Array of redirect hierarchy
+            Redirects    = $Redirects | Select-Object @{
+              Name       = 'Target'
+              Expression = { $_.to }
+            }, @{
+              Name       = 'Anchor'
+              Expression = { $_.tofragment }
+            }
+
+             # Final target of the redirect hierarchy
+            Resolved     = [ordered]@{
+              Namespace  = (Get-MWNamespace -NamespaceID $Resolution.ns).Name
+              Name       = $Resolution.title
+              ID         = $Resolution.pageid
+            }
+          }
+          $ArrPSCustomObject += New-Object PSObject -Property $ObjectProperties
+        }
+      }
+
+      if ($ArrPSCustomObject.Count -ge $ResultSize)
+      { break }
+    }
+  }
+
+  End
+  {
+    if ($JSON)
+    { return $ArrJSON }
+   
+    return $ArrPSCustomObject
+  }
+}
+#endregion
+
 #region Get-MWBackLink
 function Get-MWBackLink
 {
@@ -3005,7 +3053,7 @@ function Get-MWBackLink
 
     [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
-    [int]$ID,
+    [uint32]$ID,
 
     [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
     [string]$ResultSize = 1000,
@@ -3061,34 +3109,34 @@ function Get-MWCargoQuery
 {
   param
   (
-    [parameter(Mandatory, ValueFromPipelineByPropertyName)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
     #[Alias('Table')]
     [string[]]$Tables, # The Cargo database table or tables on which to search
 
-    [parameter(ValueFromPipelineByPropertyName)]
+    [Parameter(ValueFromPipelineByPropertyName)]
     #[Alias('Field')]
     [AllowEmptyString()]
     [string[]]$Fields = '', # The table field(s) to retrieve
 
-    [parameter(ValueFromPipelineByPropertyName)]
+    [Parameter(ValueFromPipelineByPropertyName)]
     [string]$Where, # The conditions for the query, corresponding to an SQL WHERE clause
 
-    [parameter(ValueFromPipelineByPropertyName)]
+    [Parameter(ValueFromPipelineByPropertyName)]
     [string]$JoinOn, # Conditions for joining multiple tables, corresponding to an SQL JOIN ON clause
 
-    [parameter(ValueFromPipelineByPropertyName)]
+    [Parameter(ValueFromPipelineByPropertyName)]
     [string]$GroupBy, # Field(s) on which to group results, corresponding to an SQL GROUP BY clause
 
-    [parameter(ValueFromPipelineByPropertyName)]
+    [Parameter(ValueFromPipelineByPropertyName)]
     [string]$Having, # Conditions for grouped values, corresponding to an SQL HAVING clause
 
-    [parameter(ValueFromPipelineByPropertyName)]
+    [Parameter(ValueFromPipelineByPropertyName)]
     [string]$OrderBy, # The order of results, corresponding to an SQL ORDER BY clause
 
-    [parameter(ValueFromPipelineByPropertyName)]
+    [Parameter(ValueFromPipelineByPropertyName)]
     [uint32]$Offset, # The query offset. The value must be no less than 0.
 
-    [parameter(ValueFromPipelineByPropertyName)]
+    [Parameter(ValueFromPipelineByPropertyName)]
     [Alias('ResultSize')]
     [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
     [string]$Limit = 1000, # A limit on the number of results returned, corresponding to an SQL LIMIT clause
@@ -3182,9 +3230,9 @@ function Get-MWCategoryMember
     [Alias('Category', 'Identity', 'Group')]
     [string]$Name,
 
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'CategoryID', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'CategoryID', Position=0)]
     [Alias('CategoryID')]
-    [int]$ID,
+    [uint32]$ID,
 
     [ValidateScript({ Test-MWNamespace -InputObject $PSItem -AllowWildcard })]
     [string[]]$Namespace,
@@ -3448,24 +3496,27 @@ function Get-MWCategoryMember
 #endregion
 
 #region Get-MWChangeTag
-<#
-.SYNOPSIS
-  Retrieves the recognized change tags of the site.
-
-.DESCRIPTION
-  Retrieves the specified properties about the change tags of the site.
-
-.PARAMETER Properties
-  String array of properties to retrieve for the change tags. Use * to retrieve all properties.
-
-.PARAMETER ManualOnly
-  Switch used to indicate that only manual change tags should be returned.
-
-.OUTPUTS
-  Array of PSObject holding the requested properties of the change tags.
-#>
 function Get-MWChangeTag
 {
+  <#
+  .SYNOPSIS
+    Retrieves the recognized change tags of the site.
+
+  .DESCRIPTION
+    Retrieves the specified properties about the change tags of the site.
+
+  .PARAMETER Properties
+    String array of properties to retrieve for the change tags. Use * to retrieve all properties.
+
+  .PARAMETER ManualOnly
+    Switch used to indicate that only manual change tags should be returned.
+
+  .INPUTS
+    None.
+
+  .OUTPUTS
+    Array of PSObject holding the requested properties of the change tags.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'UserName')]
   param
   (
@@ -3591,7 +3642,7 @@ function Get-MWCurrentUser
 }
 #endregion
 
-#region Get-MWUserPreference
+#region Get-MWCurrentUserPreference
 function Get-MWCurrentUserPreference
 {
   [CmdletBinding()]
@@ -3602,7 +3653,7 @@ function Get-MWCurrentUserPreference
 }
 #endregion
 
-#region Get-MWUserRight
+#region Get-MWCurrentUserGroup
 function Get-MWCurrentUserGroup
 {
   [CmdletBinding()]
@@ -3613,7 +3664,7 @@ function Get-MWCurrentUserGroup
 }
 #endregion
 
-#region Get-MWUserRateLimit
+#region Get-MWCurrentUserRateLimit
 function Get-MWCurrentUserRateLimit
 {
   [CmdletBinding()]
@@ -3624,7 +3675,7 @@ function Get-MWCurrentUserRateLimit
 }
 #endregion
 
-#region Get-MWUserRight
+#region Get-MWCurrentUserRight
 function Get-MWCurrentUserRight
 {
   [CmdletBinding()]
@@ -3644,14 +3695,14 @@ function Get-MWEmbeddedIn
     <#
       Core parameters
     #>
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string]$Name,
 
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
-    [int]$ID,
+    [uint32]$ID,
 
     [ValidateScript({ Test-MWNamespace -InputObject $PSItem -AllowWildcard })]
     [string[]]$Namespace,
@@ -3731,12 +3782,12 @@ function Get-MWFileInfo
     <#
       Core parameters
     #>
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('ImageName', 'FileName')]
     [string[]]$Name,
 
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int[]]$ID,
 
@@ -3826,12 +3877,12 @@ function Get-MWFileUsage
     <#
       Core parameters
     #>
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('ImageName', 'FileName')]
     [string[]]$Name,
 
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int[]]$ID,
 
@@ -4148,102 +4199,40 @@ function Get-MWRecentChanges
 }
 #endregion
 
-#region Get-MWPageLink
-#TODO: Generator. Evaluate?
-function Get-MWPageLink
-{
-  [CmdletBinding()]
-  param (
-    <#
-      Core parameters
-    #>
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
-    [ValidateNotNullOrEmpty()]
-    [Alias('Title', 'Identity', 'PageName')]
-    [string[]]$Name,
-
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
-    [Alias('PageID')]
-    [int[]]$ID,
-
-    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
-    [string]$ResultSize = 1000,
-    
-    <#
-      Debug
-    #>
-    [switch]$JSON
-  )
-
-  Begin
-  {
-    $ArrJSON = @()
-  }
-
-  Process
-  {
-    if ($null -eq $script:Config.URI)
-    {
-      Write-Warning "Not connected to a MediaWiki instance."
-      return $null
-    }
-
-    if ($ResultSize -eq 'Unlimited')
-    { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
-
-    $Body = [ordered]@{
-      action    = 'query'
-      generator = 'links'
-      prop      = 'info'
-      gpllimit  = 'max'
-    }
-
-    if ($ID)
-    { $Body.pageids = $ID -join '|' }
-    else
-    { $Body.titles = $Name -join '|' }
-
-    $ArrJSON += Invoke-MWApiContinueRequest -Body $Body -Method GET -ResultSize $ResultSize -Node1 'pages'
-  }
-
-  End
-  {
-    if ($JSON)
-    { return $ArrJSON }
-
-    return $ArrJSON.query.pages | Select-Object -First $ResultSize | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
-  }
-}
-#endregion
-
 #region Get-MWNamespace
-<#
-.SYNOPSIS
-  Retrieves the namespaces of the site.
-
-.DESCRIPTION
-  Retrieves the registered "positive" namespaces of the site, and can optionally include the "negative" special namespaces.
-
-.PARAMETER NamespaceName
-  Name of the namespace to retrieve. Cannot be used alongside the -Name parameter.
-
-.PARAMETER NamespaceID
-  ID of the namespace to retrieve. Cannot be used alongside the -ID parameter.
-
-.PARAMETER All
-  Returns all registered namespaces.
-
-.PARAMETER IncludeNegative
-  Switch used to indicate that any negative special namespaces should be included.
-
-.PARAMETER PageName
-  Extracts and returns the details of a namespace from a given page name.
-
-.OUTPUTS
-  Array of PSObject holding the generic information about the given namespaces.
-#>
 function Get-MWNamespace
 {
+  <#
+  .SYNOPSIS
+    Retrieves the namespaces of the site.
+
+  .DESCRIPTION
+    Retrieves the registered "positive" namespaces of the site, and can optionally include the "negative" special namespaces.
+
+  .PARAMETER NamespaceName
+    Name of the namespace to retrieve. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER NamespaceID
+    ID of the namespace to retrieve. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER All
+    Returns all registered namespaces.
+
+  .PARAMETER IncludeNegative
+    Switch used to indicate that any negative special namespaces should be included.
+
+  .PARAMETER PageName
+    Extracts and returns the details of a namespace from a given page name.
+    
+  .INPUTS
+    NamespaceName (System.String) of the namespace to retrieve. Cannot be used alongside the -NamespaceID parameter.
+
+  .INPUTS
+    NamespaceID (System.Int32) of the namespace to retrieve. Cannot be used alongside the -NamespaceName parameter.
+
+  .OUTPUTS
+    Array of PSObject holding the generic information about the given namespaces.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'All')]
   param (
     <#
@@ -4328,21 +4317,24 @@ function Get-MWNamespace
 #endregion
 
 #region Get-MWNamespacePage
-<#
-.SYNOPSIS
-  Retrieve pages belonging to the given namespace.
-
-.PARAMETER Name
-  Name of the namespace to retrieve pages from.
-
-.PARAMETER ResultSize
-  Limit the returned results. Defaults to 1000.
-
-.OUTPUTS
-  Returns a PSObject array containing pages of the given namespace.
-#>
 function Get-MWNamespacePage
 {
+  <#
+  .SYNOPSIS
+    Retrieve pages belonging to the given namespace.
+
+  .PARAMETER Name
+    Name of the namespace to retrieve pages from.
+
+  .PARAMETER ResultSize
+    Limit the returned results. Defaults to 1000.
+
+  .INPUTS
+    Name (System.String) of the namespace to retrieve pages for.
+
+  .OUTPUTS
+    Returns a PSObject array containing pages of the given namespace.
+  #>
   [CmdletBinding()]
   param
   (
@@ -4375,42 +4367,48 @@ function Get-MWNamespacePage
 #endregion
 
 #region Get-MWPage
-<#
-.SYNOPSIS
-  Retrieves a page.
-
-.DESCRIPTION
-  Retrieves the contents of the given page and any specified properties.
-
-.PARAMETER Name
-  Name of the page to retrieve. Cannot be used alongside the -Name parameter.
-
-.PARAMETER ID
-  ID of the page to retrieve. Cannot be used alongside the -ID parameter.
-
-.PARAMETER Index
-  Retrieve the contents of a single section using its index identifier, as retrieved through a regular Get-MWPage call.
-
-.PARAMETER Properties
-  String array of properties to retrieve for the given page. Use * to retrieve all properties.
-
-.PARAMETER ParsedText
-  Switch used to indicate the parsed HTML text of the page should be returned.
-
-.PARAMETER Wikitext
-  Switch used to indicate the original wikitext of the page should be returned.
-
-.PARAMETER FollowRedirects
-  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
-
-.PARAMETER Information
-  Switch to retrieve additional information about the given page, using a subcall to Get-MWPageInfo.
-
-.OUTPUTS
-  PSObject holding the requested properties of the given page.
-#>
 function Get-MWPage
 {
+  <#
+  .SYNOPSIS
+    Retrieves a page.
+
+  .DESCRIPTION
+    Retrieves the contents of the given page and any specified properties.
+
+  .PARAMETER Name
+    Name of the page to retrieve. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER ID
+    ID of the page to retrieve. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER Index
+    Retrieve the contents of a single section using its index identifier, as retrieved through a regular Get-MWPage call.
+
+  .PARAMETER Properties
+    String array of properties to retrieve for the given page. Use * to retrieve all properties.
+
+  .PARAMETER ParsedText
+    Switch used to indicate the parsed HTML text of the page should be returned.
+
+  .PARAMETER Wikitext
+    Switch used to indicate the original wikitext of the page should be returned.
+
+  .PARAMETER FollowRedirects
+    Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+  .PARAMETER Information
+    Switch to retrieve additional information about the given page, using a subcall to Get-MWPageInfo.
+    
+  .INPUTS
+    Name (System.String) of the page to retrieve. Cannot be used alongside the -ID parameter.
+
+  .INPUTS
+    ID (System.UInt32) of the page to retrieve. Cannot be used alongside the -Name parameter.
+
+  .OUTPUTS
+    PSObject holding the requested properties of the given page.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
     <#
@@ -4423,7 +4421,7 @@ function Get-MWPage
 
     [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
-    [int]$ID,
+    [uint32]$ID,
 
     <#
       Section based stuff
@@ -4533,37 +4531,43 @@ function Get-MWPage
 #endregion
 
 #region Get-MWPageInfo
-<#
-.SYNOPSIS
-  Retrieves information about the given pages.
-
-.PARAMETER Name
-  String array of page names to retrieve information about. Cannot be used alongside the -ID parameter.
-
-.PARAMETER ID
-  Integer array of page IDs to retrieve information about. Cannot be used alongside the -Name parameter.
-
-.PARAMETER FollowRedirects
-  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
-
-.OUTPUTS
-  Returns a PSObject array containing information about the given pages.
-#>
 function Get-MWPageInfo
 {
+  <#
+  .SYNOPSIS
+    Retrieves information about the given pages.
+
+  .PARAMETER Name
+    String array of page names to retrieve information about. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER ID
+    Integer array of page IDs to retrieve information about. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER FollowRedirects
+    Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+    
+  .INPUTS
+    Name (System.String) of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .INPUTS
+    ID (System.UInt32) of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .OUTPUTS
+    Returns a PSObject array containing information about the given pages.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
     <#
       Core parameters
     #>
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string[]]$Name,
 
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
-    [int[]]$ID,
+    [uint32[]]$ID,
 
     [switch]$FollowRedirects,
     
@@ -4613,73 +4617,165 @@ function Get-MWPageInfo
 }
 #endregion
 
-#region Get-MWProtectionLevel
-<#
-.SYNOPSIS
-  Retrieves protection level from the connected site.
+#region Get-MWPageLink
+#TODO: Generator. Evaluate?
+function Get-MWPageLink
+{
+  [CmdletBinding()]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('Title', 'Identity', 'PageName')]
+    [string[]]$Name,
 
-.OUTPUTS
-  Returns a string array of the protection levels of the site.
-#>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Alias('PageID')]
+    [int[]]$ID,
+
+    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
+    [string]$ResultSize = 1000,
+    
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin
+  {
+    $ArrJSON = @()
+  }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    if ($ResultSize -eq 'Unlimited')
+    { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
+
+    $Body = [ordered]@{
+      action    = 'query'
+      generator = 'links'
+      prop      = 'info'
+      gpllimit  = 'max'
+    }
+
+    if ($ID)
+    { $Body.pageids = $ID -join '|' }
+    else
+    { $Body.titles = $Name -join '|' }
+
+    $ArrJSON += Invoke-MWApiContinueRequest -Body $Body -Method GET -ResultSize $ResultSize -Node1 'pages'
+  }
+
+  End
+  {
+    if ($JSON)
+    { return $ArrJSON }
+
+    return $ArrJSON.query.pages | Select-Object -First $ResultSize | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
+  }
+}
+#endregion
+
+#region Get-MWProtectionLevel
 Set-Alias -Name Get-MWRestrictionLevel -Value Get-MWProtectionLevel
 function Get-MWProtectionLevel
 {
+  <#
+  .SYNOPSIS
+    Retrieves protection level from the connected site.
+
+  .ALIASES
+    Get-MWRestrictionLevel
+
+  .INPUTS
+    None.
+
+  .OUTPUTS
+    Returns a string array of the protection levels of the site.
+  #>
   return $script:Cache.RestrictionLevel
 }
 #endregion
 
 #region Get-MWProtectionType
-<#
-.SYNOPSIS
-  Retrieves protection types from the connected site.
-
-.OUTPUTS
-  Returns a string array of the protection types of the site.
-#>
 Set-Alias -Name Get-MWRestrictionType -Value Get-MWProtectionType
 function Get-MWProtectionType
 {
+  <#
+  .SYNOPSIS
+    Retrieves protection types from the connected site.
+
+  .ALIASES
+    Get-MWRestrictionType
+
+  .INPUTS
+    None.
+
+  .OUTPUTS
+    Returns a string array of the protection types of the site.
+  #>
   return $script:Cache.RestrictionType
 }
 #endregion
 
 #region Get-MWSection
-<#
-.SYNOPSIS
-  Retrieves a section of the given page.
-
-.DESCRIPTION
-  Retrieves the contents of the given page and any specified properties.
-
-.PARAMETER Name
-  Name of the page to retrieve. Cannot be used alongside the -Name parameter.
-
-.PARAMETER FromTitle
-  Alias for the -Name parameter.
-
-.PARAMETER ID
-  ID of the page to retrieve. Cannot be used alongside the -ID parameter.
-
-.PARAMETER Index
-  Identifier of the section to retrieve the contents of; index is retrieved through Get-MWPage.
-
-.PARAMETER Properties
-  String array of properties to retrieve for the given page. Use * to retrieve all properties.
-
-.PARAMETER ParsedText
-  Switch used to indicate the parsed HTML text of the page should be returned.
-
-.PARAMETER Wikitext
-  Switch used to indicate the original wikitext of the page should be returned.
-
-.PARAMETER FollowRedirects
-  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
-
-.OUTPUTS
-  PSObject holding the requested properties of the given page.
-#>
 function Get-MWSection
 {
+  <#
+  .SYNOPSIS
+    Retrieves a section of the given page.
+
+  .DESCRIPTION
+    Retrieves the contents of the given page and any specified properties.
+
+  .PARAMETER Name
+    Name of the page to retrieve. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER FromTitle
+    Alias for the -Name parameter.
+
+  .PARAMETER ID
+    ID of the page to retrieve. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER Index
+    Identifier of the section to retrieve the contents of; index is retrieved through Get-MWPage.
+
+  .PARAMETER Properties
+    String array of properties to retrieve for the given page. Use * to retrieve all properties.
+
+  .PARAMETER ParsedText
+    Switch used to indicate the parsed HTML text of the page should be returned.
+
+  .PARAMETER Wikitext
+    Switch used to indicate the original wikitext of the page should be returned.
+
+  .PARAMETER FollowRedirects
+    Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+    
+  .INPUTS
+    Name (System.String) of the page to retrieve the section from. Cannot be used alongside the -ID parameter.
+    
+  .INPUTS
+    FromTitle (System.String) as an alias for -Name.
+
+  .INPUTS
+    ID (System.UInt32) of the page to retrieve the section from. Cannot be used alongside the -Name parameter.
+
+  .INPUTS
+    Index (System.UInt32) of the section to retrieve.
+
+  .OUTPUTS
+    PSObject holding the requested properties of the given page.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
     <#
@@ -4697,14 +4793,14 @@ function Get-MWSection
 
     [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
-    [int]$ID,
+    [uint32]$ID,
 
     <#
       Section based stuff
     #>
     [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
     [Alias('SectionIndex')]
-    $Index,
+    [uint32]$Index,
 
     # Passthrough
     [string[]]$Properties,
@@ -4755,15 +4851,18 @@ function Get-MWSection
 #endregion
 
 #region Get-MWSession
-<#
-.SYNOPSIS
-  Retrieves data about the established MediaWiki API session.
-
-.OUTPUTS
-  Returns the session variable for the active connection.
-#>
 function Get-MWSession
 {
+  <#
+  .SYNOPSIS
+    Retrieves data about the established MediaWiki API session.
+
+  .INPUTS
+    None.
+
+  .OUTPUTS
+    Returns the session variable for the active connection.
+  #>
   [CmdletBinding()]
   param ( )
 
@@ -4782,21 +4881,24 @@ function Get-MWSession
 #endregion
 
 #region Get-MWSiteInfo
-<#
-.SYNOPSIS
-  Retrieves properties about the connected site.
-
-.DESCRIPTION
-  Retrieves the specified properties about the connected site.
-
-.PARAMETER Properties
-  String array of properties to retrieve for the given users. Use * to retrieve all properties.
-
-.OUTPUTS
-  PSObject holding the requested properties of the connected site.
-#>
 function Get-MWSiteInfo
 {
+  <#
+  .SYNOPSIS
+    Retrieves properties about the connected site.
+
+  .DESCRIPTION
+    Retrieves the specified properties about the connected site.
+
+  .PARAMETER Properties
+    String array of properties to retrieve for the given users. Use * to retrieve all properties.
+
+  .INPUTS
+    None.
+
+  .OUTPUTS
+    PSObject holding the requested properties of the connected site.
+  #>
   [CmdletBinding()]
   param
   (
@@ -4884,21 +4986,24 @@ function Get-MWSiteInfo
 #endregion
 
 #region Get-MWToken
-<#
-.SYNOPSIS
-  Retrieves a token of the requested type.
-
-.PARAMETER Type
-  Indicates which type of token to retrieve.
-
-.PARAMETER Force
-  Ignore any cached token and retrieve a new one.
-
-.OUTPUTS
-  The retrieved token as a string.
-#>
 function Get-MWToken
 {
+  <#
+  .SYNOPSIS
+    Retrieves a token of the requested type.
+
+  .PARAMETER Type
+    Indicates which type of token to retrieve.
+
+  .PARAMETER Force
+    Ignore any cached token and retrieve a new one.
+
+  .INPUTS
+    None.
+
+  .OUTPUTS
+    The retrieved token as a string.
+  #>
   [CmdletBinding()]
   param (
     [TokenType]$Type = [TokenType]::None,
@@ -5040,30 +5145,36 @@ function Get-MWUnreadNotifications
 #endregion
 
 #region Get-MWUser
-<#
-.SYNOPSIS
-  Retrieves properties about the given users.
-
-.DESCRIPTION
-  Retrieves the specified properties about the given usernames or user IDs.
-
-.PARAMETER Name
-  String array of usernames to retrieve information about. Cannot be used alongside the -ID parameter.
-
-.PARAMETER ID
-  Integer array of user IDs to retrieve information about. Cannot be used alongside the -Name parameter.
-
-.PARAMETER Properties
-  String array of properties to retrieve for the given users. Use * to retrieve all properties.
-
-.PARAMETER AttachedWiki
-  Integer to indicate a wiki ID to check whether the user is attached to.
-
-.OUTPUTS
-  Array of PSObject holding the requested properties of the given users.
-#>
 function Get-MWUser
 {
+  <#
+  .SYNOPSIS
+    Retrieves properties about the given users.
+
+  .DESCRIPTION
+    Retrieves the specified properties about the given usernames or user IDs.
+
+  .PARAMETER Name
+    String array of usernames to retrieve information about. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER ID
+    Integer array of user IDs to retrieve information about. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER Properties
+    String array of properties to retrieve for the given users. Use * to retrieve all properties.
+
+  .PARAMETER AttachedWiki
+    Integer to indicate a wiki ID to check whether the user is attached to.
+    
+  .INPUTS
+    Name (System.String) of the page to retrieve the section from. Cannot be used alongside the -ID parameter.
+
+  .INPUTS
+    ID (System.UInt32) of the page to retrieve the section from. Cannot be used alongside the -Name parameter.
+
+  .OUTPUTS
+    Array of PSObject holding the requested properties of the given users.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'UserName')]
   param
   (
@@ -5651,45 +5762,60 @@ function Move-MWPage
 #endregion
 
 #region New-MWPage
-<#
-.SYNOPSIS
-  Creates a new page on the site.
-
-.PARAMETER Name
-  Name of the page to be created.
-
-.PARAMETER Summary
-  A short summary to attach to the edit.
-
-.PARAMETER Content
-  Contents of the new page.
-
-.PARAMETER Wikitext
-  Alias for the -Content parameter.
-
-.PARAMETER Watchlist
-  Defines whether to add the page to the user's watchlist or not.
-
-.PARAMETER Recreate
-  Switch used to indicate that the target page should be recreated if it has been deleted.
-
-.PARAMETER Bot
-  Switch used to indicate the edit was performed by a bot.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a minor concern.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a major concern.
-
-.PARAMETER Tags
-  Tag the edit according to one or more tags available in Special:Tags
-
-.OUTPUTS
-  Returns a PSObject object containing the results of the edit.
-#>
 function New-MWPage
 {
+  <#
+  .SYNOPSIS
+    Creates a new page on the site.
+
+  .DESCRIPTION
+    Creates a new page on the site, with optional parameters to indicate how to flag the edit.
+
+  .PARAMETER Name
+    Name of the page to be created.
+
+  .PARAMETER Summary
+    A short summary to attach to the edit.
+
+  .PARAMETER Content
+    Contents of the new page.
+
+  .PARAMETER Wikitext
+    Alias for the -Content parameter.
+
+  .PARAMETER Watchlist
+    Defines whether to add the page to the user's watchlist or not.
+
+  .PARAMETER Recreate
+    Switch used to indicate that the target page should be recreated if it has been deleted.
+
+  .PARAMETER Bot
+    Switch used to indicate the edit was performed by a bot.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a minor concern.
+
+  .PARAMETER Major
+    Switch used to indicate the edit is of a major concern.
+
+  .PARAMETER Tags
+    Tag the edit according to one or more tags available in Special:Tags
+
+  .INPUTS
+    Name (System.String) of the page to create.
+
+  .INPUTS
+    Summary (System.String) of the edit summary.
+
+  .INPUTS
+    Content (System.String) of the new page.
+
+  .INPUTS
+    Wikitext (System.String) as an alias for -Content.
+
+  .OUTPUTS
+    Returns a PSObject object containing the results of the edit.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
     <#
@@ -5793,63 +5919,78 @@ function New-MWPage
 #endregion
 
 #region New-MWSection
-<#
-.SYNOPSIS
-  Adds a new section to the given page.
-
-.DESCRIPTION
-  The cmdlet is a front for Set-MWPage that makes it easier to add a new section to an existing page.
-
-.PARAMETER Name
-  Name of the page to edit. Cannot be used alongside the -Name parameter.
-
-.PARAMETER ID
-  ID of the page to edit. Cannot be used alongside the -ID parameter.
-
-.PARAMETER Summary
-  A short summary to attach to the edit.
-
-.PARAMETER Content
-  Contents of the new section.
-
-.PARAMETER Wikitext
-  Alias for the -Content parameter.
-
-.PARAMETER Title
-  The title of the new section.
-
-.PARAMETER BaseRevisionID
-  ID of the base revision, used to detect edit conflicts.
-
-.PARAMETER BaseTimestamp
-  Timestamp of the base revision, used to detect edit conflicts.
-
-.PARAMETER StartTimestamp
-  Timestamp when the editing process began, used to detect edit conflicts.
-
-.PARAMETER Watchlist
-  Defines whether to add the page to the user's watchlist or not.
-
-.PARAMETER FollowRedirects
-  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
-
-.PARAMETER Bot
-  Switch used to indicate the edit was performed by a bot.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a minor concern.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a major concern.
-
-.PARAMETER Tags
-  Tag the edit according to one or more tags available in Special:Tags
-
-.OUTPUTS
-  Returns a PSObject object containing the results of the edit.
-#>
 function New-MWSection
 {
+  <#
+  .SYNOPSIS
+    Adds a new section to the given page.
+
+  .DESCRIPTION
+    The cmdlet is a front for Set-MWPage that makes it easier to add a new section to an existing page.
+
+  .PARAMETER Name
+    Name of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER ID
+    ID of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER Summary
+    A short summary to attach to the edit.
+
+  .PARAMETER Content
+    Contents of the new section.
+
+  .PARAMETER Wikitext
+    Alias for the -Content parameter.
+
+  .PARAMETER Title
+    The title of the new section.
+
+  .PARAMETER BaseRevisionID
+    ID of the base revision, used to detect edit conflicts.
+
+  .PARAMETER BaseTimestamp
+    Timestamp of the base revision, used to detect edit conflicts.
+
+  .PARAMETER StartTimestamp
+    Timestamp when the editing process began, used to detect edit conflicts.
+
+  .PARAMETER Watchlist
+    Defines whether to add the page to the user's watchlist or not.
+
+  .PARAMETER FollowRedirects
+    Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+  .PARAMETER Bot
+    Switch used to indicate the edit was performed by a bot.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a minor concern.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a major concern.
+
+  .PARAMETER Tags
+    Tag the edit according to one or more tags available in Special:Tags
+    
+  .INPUTS
+    Name (System.String) of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .INPUTS
+    ID (System.UInt32) of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .INPUTS
+    Summary (System.String) of the edit summary.
+
+  .INPUTS
+    Content (System.String) of the new section.
+
+  .INPUTS
+    Wikitext (System.String) as an alias for -Content.
+
+  .OUTPUTS
+    Returns a PSObject object containing the results of the edit.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
     <#
@@ -6093,57 +6234,72 @@ function Remove-MWPage
 #endregion
 
 #region Remove-MWSection
-<#
-.SYNOPSIS
-  Removes the specified section on the given page.
-
-.DESCRIPTION
-  The cmdlet is a front for Set-MWPage that makes it easier to add new text to an existing section on pages.
-
-.PARAMETER Name
-  Name of the page to edit. Cannot be used alongside the -Name parameter.
-
-.PARAMETER ID
-  ID of the page to edit. Cannot be used alongside the -ID parameter.
-
-.PARAMETER Summary
-  A short summary to attach to the edit.
-
-.PARAMETER Index
-  The section index to remove, retrieved through Get-MWPage.
-
-.PARAMETER BaseRevisionID
-  ID of the base revision, used to detect edit conflicts.
-
-.PARAMETER BaseTimestamp
-  Timestamp of the base revision, used to detect edit conflicts.
-
-.PARAMETER StartTimestamp
-  Timestamp when the editing process began, used to detect edit conflicts.
-
-.PARAMETER Watchlist
-  Defines whether to add the page to the user's watchlist or not.
-
-.PARAMETER FollowRedirects
-  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
-
-.PARAMETER Bot
-  Switch used to indicate the edit was performed by a bot.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a minor concern.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a major concern.
-
-.PARAMETER Tags
-  Tag the edit according to one or more tags available in Special:Tags
-
-.OUTPUTS
-  Returns a PSObject object containing the results of the edit.
-#>
 function Remove-MWSection
 {
+  <#
+  .SYNOPSIS
+    Removes the specified section on the given page.
+
+  .DESCRIPTION
+    The cmdlet is a front for Set-MWPage that makes it easier to add new text to an existing section on pages.
+
+  .PARAMETER Name
+    Name of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER ID
+    ID of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER Summary
+    A short summary to attach to the edit.
+
+  .PARAMETER Index
+    The section index to remove, retrieved through Get-MWPage.
+
+  .PARAMETER BaseRevisionID
+    ID of the base revision, used to detect edit conflicts.
+
+  .PARAMETER BaseTimestamp
+    Timestamp of the base revision, used to detect edit conflicts.
+
+  .PARAMETER StartTimestamp
+    Timestamp when the editing process began, used to detect edit conflicts.
+
+  .PARAMETER Watchlist
+    Defines whether to add the page to the user's watchlist or not.
+
+  .PARAMETER FollowRedirects
+    Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+  .PARAMETER Bot
+    Switch used to indicate the edit was performed by a bot.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a minor concern.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a major concern.
+
+  .PARAMETER Tags
+    Tag the edit according to one or more tags available in Special:Tags
+    
+  .INPUTS
+    Name (System.String) of the page to edit. Cannot be used alongside the -ID parameter.
+    
+  .INPUTS
+    FromTitle (System.String) as an alias for -Name.
+
+  .INPUTS
+    ID (System.UInt32) of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .INPUTS
+    Summary (System.String) of the edit summary.
+
+  .INPUTS
+    Index (System.UInt32) of the section to edit.
+
+  .OUTPUTS
+    Returns a PSObject object containing the results of the edit.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
     <#
@@ -6172,7 +6328,7 @@ function Remove-MWSection
     #>
     [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
     [Alias('SectionIndex')]
-    $Index,
+    [uint32]$Index,
 
     <#
       Verification
@@ -6280,63 +6436,81 @@ function Remove-MWSection
 #endregion
 
 #region Rename-MWSection
-<#
-.SYNOPSIS
-  Rename the specified section on the given page to a new title.
-
-.DESCRIPTION
-  The cmdlet is a front for Set-MWPage that makes it easier to rename a specific section.
-
-.PARAMETER Name
-  Name of the page to edit. Cannot be used alongside the -Name parameter.
-
-.PARAMETER FromTitle
-  Alias for the -Name parameter.
-
-.PARAMETER ID
-  ID of the page to edit. Cannot be used alongside the -ID parameter.
-
-.PARAMETER Summary
-  A short summary to attach to the edit.
-
-.PARAMETER Index
-  The section index to edit, retrieved through Get-MWPage.
-
-.PARAMETER NewTitle
-  The new title of the section.
-
-.PARAMETER BaseRevisionID
-  ID of the base revision, used to detect edit conflicts.
-
-.PARAMETER BaseTimestamp
-  Timestamp of the base revision, used to detect edit conflicts.
-
-.PARAMETER StartTimestamp
-  Timestamp when the editing process began, used to detect edit conflicts.
-
-.PARAMETER Watchlist
-  Defines whether to add the page to the user's watchlist or not.
-
-.PARAMETER FollowRedirects
-  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
-
-.PARAMETER Bot
-  Switch used to indicate the edit was performed by a bot.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a minor concern.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a major concern.
-
-.PARAMETER Tags
-  Tag the edit according to one or more tags available in Special:Tags
-
-.OUTPUTS
-  Returns a PSObject object containing the results of the edit.
-#>
 function Rename-MWSection
 {
+  <#
+  .SYNOPSIS
+    Rename the specified section on the given page to a new title.
+
+  .DESCRIPTION
+    The cmdlet is a front for Set-MWPage that makes it easier to rename a specific section.
+
+  .PARAMETER Name
+    Name of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER FromTitle
+    Alias for the -Name parameter.
+
+  .PARAMETER ID
+    ID of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER Summary
+    A short summary to attach to the edit.
+
+  .PARAMETER Index
+    The section index to edit, retrieved through Get-MWPage.
+
+  .PARAMETER NewTitle
+    The new title of the section.
+
+  .PARAMETER BaseRevisionID
+    ID of the base revision, used to detect edit conflicts.
+
+  .PARAMETER BaseTimestamp
+    Timestamp of the base revision, used to detect edit conflicts.
+
+  .PARAMETER StartTimestamp
+    Timestamp when the editing process began, used to detect edit conflicts.
+
+  .PARAMETER Watchlist
+    Defines whether to add the page to the user's watchlist or not.
+
+  .PARAMETER FollowRedirects
+    Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+  .PARAMETER Bot
+    Switch used to indicate the edit was performed by a bot.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a minor concern.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a major concern.
+
+  .PARAMETER Tags
+    Tag the edit according to one or more tags available in Special:Tags
+      
+  .INPUTS
+    Name (System.String) of the page to edit. Cannot be used alongside the -ID parameter.
+    
+  .INPUTS
+    FromTitle (System.String) as an alias for -Name.
+
+  .INPUTS
+    ID (System.UInt32) of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .INPUTS
+    Summary (System.String) of the edit summary.
+
+  .INPUTS
+    Index (System.UInt32) of the section to edit.
+
+  .INPUTS
+    NewTitle (System.String) to rename the section to.
+
+  .OUTPUTS
+    Returns a PSObject object containing the results of the edit.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
     <#
@@ -6365,7 +6539,7 @@ function Rename-MWSection
     #>
     [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
     [Alias('SectionIndex')]
-    $Index,
+    [uint32]$Index,
 
     [Parameter(ValueFromPipelineByPropertyName)]
     [Alias('NewSectionTitle')]
@@ -6507,7 +6681,7 @@ function Search-MWPage
   [CmdletBinding(DefaultParameterSetName = 'SearchByText')]
   param
   (
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('String')]
     [string]$Pattern, # The pattern/search query to search for
@@ -6633,94 +6807,108 @@ function Search-MWPage
 #endregion
 
 #region Set-MWPage
-
-<#
-.SYNOPSIS
-  Create and edit pages.
-
-.DESCRIPTION
-  Base function responsible for all page edits and creations, and supports a wide array of parameters as a result.
-
-.PARAMETER Name
-  Name of the page to edit. Cannot be used alongside the -Name parameter.
-
-.PARAMETER ID
-  ID of the page to edit. Cannot be used alongside the -ID parameter.
-
-.PARAMETER Summary
-  A short summary to attach to the edit.
-
-.PARAMETER Content
-  Contents of the new section.
-
-.PARAMETER Wikitext
-  Alias for the -Content parameter.
-
-.PARAMETER Append
-  Switch used to indicate that the specified -Content should be appended to the page or specified -SectionIndex.
-
-.PARAMETER Prepend
-  Switch used to indicate that the specified -Content should be prepended to the page or specified -SectionIndex.
-
-.PARAMETER Section
-  Switch used to indicate that the edit concerns section should be added.
-
-.PARAMETER SectionIndex
-  The section index to edit. If omitted, a new section will be created.
-
-.PARAMETER SectionTitle
-  The title of the new section.
-
-.PARAMETER BaseRevisionID
-  ID of the base revision, used to detect edit conflicts.
-
-.PARAMETER BaseTimestamp
-  Timestamp of the base revision, used to detect edit conflicts.
-
-.PARAMETER StartTimestamp
-  Timestamp when the editing process began, used to detect edit conflicts.
-
-.PARAMETER Watchlist
-  Defines whether to add the page to the user's watchlist or not.
-
-.PARAMETER Recreate
-  Switch used to indicate that the target page should be recreated if it has been deleted.
-
-.PARAMETER CreateOnly
-  Switch used to indicate that the edit should create a new page; does not apply the edit on an existing page.
-
-.PARAMETER NoCreate
-  Switch used to indicate that the edit should not result in the creation of a new page; only applies the edit on an existing page.
-
-.PARAMETER FollowRedirects
-  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
-
-.PARAMETER Bot
-  Switch used to indicate the edit was performed by a bot.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a minor concern.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a major concern.
-
-.PARAMETER Tags
-  Tag the edit according to one or more tags available in Special:Tags
-
-.PARAMETER Undo
-  Switch used to indicate that an edit should be undone. Cannot be used with -Content, -Wikitext, -Append, or -Prepend.
-
-.PARAMETER RevisionID
-  The revision ID to undo, or the revision ID to start undoing from if specifying a range to undo.
-
-.PARAMETER EndRevisionID
-  The revision ID to stop undoing at. Will only undo one edit if unused.
-
-.OUTPUTS
-  Returns a PSObject object containing the results of the edit.
-#>
 function Set-MWPage
 {
+  <#
+  .SYNOPSIS
+    Create and edit pages.
+
+  .DESCRIPTION
+    Base function responsible for all page edits and creations, and supports a wide array of parameters as a result.
+
+  .PARAMETER Name
+    Name of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER ID
+    ID of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER Summary
+    A short summary to attach to the edit.
+
+  .PARAMETER Content
+    Contents of the new section.
+
+  .PARAMETER Wikitext
+    Alias for the -Content parameter.
+
+  .PARAMETER Append
+    Switch used to indicate that the specified -Content should be appended to the page or specified -SectionIndex.
+
+  .PARAMETER Prepend
+    Switch used to indicate that the specified -Content should be prepended to the page or specified -SectionIndex.
+
+  .PARAMETER Section
+    Switch used to indicate that the edit concerns section should be added.
+
+  .PARAMETER SectionIndex
+    The section index to edit. If omitted, a new section will be created.
+
+  .PARAMETER SectionTitle
+    The title of the new section.
+
+  .PARAMETER BaseRevisionID
+    ID of the base revision, used to detect edit conflicts.
+
+  .PARAMETER BaseTimestamp
+    Timestamp of the base revision, used to detect edit conflicts.
+
+  .PARAMETER StartTimestamp
+    Timestamp when the editing process began, used to detect edit conflicts.
+
+  .PARAMETER Watchlist
+    Defines whether to add the page to the user's watchlist or not.
+
+  .PARAMETER Recreate
+    Switch used to indicate that the target page should be recreated if it has been deleted.
+
+  .PARAMETER CreateOnly
+    Switch used to indicate that the edit should create a new page; does not apply the edit on an existing page.
+
+  .PARAMETER NoCreate
+    Switch used to indicate that the edit should not result in the creation of a new page; only applies the edit on an existing page.
+
+  .PARAMETER FollowRedirects
+    Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+  .PARAMETER Bot
+    Switch used to indicate the edit was performed by a bot.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a minor concern.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a major concern.
+
+  .PARAMETER Tags
+    Tag the edit according to one or more tags available in Special:Tags
+
+  .PARAMETER Undo
+    Switch used to indicate that an edit should be undone. Cannot be used with -Content, -Wikitext, -Append, or -Prepend.
+
+  .PARAMETER RevisionID
+    The revision ID to undo, or the revision ID to start undoing from if specifying a range to undo.
+
+  .PARAMETER EndRevisionID
+    The revision ID to stop undoing at. Will only undo one edit if unused.
+    
+  .INPUTS
+    Name (System.String) of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .INPUTS
+    ID (System.UInt32) of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .INPUTS
+    Summary (System.String) of the edit summary.
+
+  .INPUTS
+    Content (System.String) of the new section.
+
+  .INPUTS
+    Wikitext (System.String) as an alias for -Content.
+
+  .OUTPUTS
+    Returns a PSObject object containing the results of the edit.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
     <#
@@ -6988,66 +7176,81 @@ function Set-MWPage
 #endregion
 
 #region Set-MWSection
-<#
-.SYNOPSIS
-  Sets the content of the specified section on the given page.
-
-.DESCRIPTION
-  The cmdlet is a front for Set-MWPage that makes it easier to set the text of a section on a page.
-
-.PARAMETER Name
-  Name of the page to edit. Cannot be used alongside the -Name parameter.
-
-.PARAMETER FromTitle
-  Alias for the -Name parameter.
-
-.PARAMETER ID
-  ID of the page to edit. Cannot be used alongside the -ID parameter.
-
-.PARAMETER Summary
-  A short summary to attach to the edit.
-
-.PARAMETER Content
-  Content to change the specified section to.
-
-.PARAMETER Wikitext
-  Alias for the -Content parameter.
-
-.PARAMETER Index
-  The section index to edit, retrieved through Get-MWPage.
-
-.PARAMETER BaseRevisionID
-  ID of the base revision, used to detect edit conflicts.
-
-.PARAMETER BaseTimestamp
-  Timestamp of the base revision, used to detect edit conflicts.
-
-.PARAMETER StartTimestamp
-  Timestamp when the editing process began, used to detect edit conflicts.
-
-.PARAMETER Watchlist
-  Defines whether to add the page to the user's watchlist or not.
-
-.PARAMETER FollowRedirects
-  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
-
-.PARAMETER Bot
-  Switch used to indicate the edit was performed by a bot.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a minor concern.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a major concern.
-
-.PARAMETER Tags
-  Tag the edit according to one or more tags available in Special:Tags
-
-.OUTPUTS
-  Returns a PSObject object containing the results of the edit.
-#>
 function Set-MWSection
 {
+  <#
+  .SYNOPSIS
+    Sets the content of the specified section on the given page.
+
+  .DESCRIPTION
+    The cmdlet is a front for Set-MWPage that makes it easier to set the text of a section on a page.
+
+  .PARAMETER Name
+    Name of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER FromTitle
+    Alias for the -Name parameter.
+
+  .PARAMETER ID
+    ID of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER Summary
+    A short summary to attach to the edit.
+
+  .PARAMETER Content
+    Content to change the specified section to.
+
+  .PARAMETER Wikitext
+    Alias for the -Content parameter.
+
+  .PARAMETER Index
+    The section index to edit, retrieved through Get-MWPage.
+
+  .PARAMETER BaseRevisionID
+    ID of the base revision, used to detect edit conflicts.
+
+  .PARAMETER BaseTimestamp
+    Timestamp of the base revision, used to detect edit conflicts.
+
+  .PARAMETER StartTimestamp
+    Timestamp when the editing process began, used to detect edit conflicts.
+
+  .PARAMETER Watchlist
+    Defines whether to add the page to the user's watchlist or not.
+
+  .PARAMETER FollowRedirects
+    Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+  .PARAMETER Bot
+    Switch used to indicate the edit was performed by a bot.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a minor concern.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a major concern.
+
+  .PARAMETER Tags
+    Tag the edit according to one or more tags available in Special:Tags
+    
+  .INPUTS
+    Name (System.String) of the page to edit. Cannot be used alongside the -ID parameter.
+    
+  .INPUTS
+    FromTitle (System.String) as an alias for -Name.
+
+  .INPUTS
+    ID (System.UInt32) of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .INPUTS
+    Summary (System.String) of the edit summary.
+
+  .INPUTS
+    Index (System.UInt32) of the section to edit.
+
+  .OUTPUTS
+    Returns a PSObject object containing the results of the edit.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
     <#
@@ -7086,7 +7289,7 @@ function Set-MWSection
     #>
     [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
     [Alias('SectionIndex')]
-    $Index,
+    [uint32]$Index,
 
     <#
       Verification
@@ -7229,56 +7432,68 @@ function Set-MWSection
 #endregion
 
 #region Undo-MWPageEdit
-<#
-.SYNOPSIS
-  Undo edits on a page.
-
-.DESCRIPTION
-  Undo the specified edits of a page or all edits made by the last user to edit the page.
-
-.PARAMETER Name
-  Name of the page to edit. Cannot be used alongside the -Name parameter.
-
-.PARAMETER ID
-  ID of the page to edit. Cannot be used alongside the -ID parameter.
-
-.PARAMETER Summary
-  A short summary to attach to the edit.
-
-.PARAMETER RevisionID
-  The revision ID to undo, or the revision ID to start undoing from if specifying a range to undo.
-
-.PARAMETER EndRevisionID
-  The revision ID to stop undoing at. Will only undo one edit if unused.
-
-.PARAMETER Rollback
-  Switch used to indicate that all edits of the specified user should be rolled back.
-  Must be used together with -User.
-
-.PARAMETER User
-  Username, ID (#12345), or IP address of the user whose edits are to be rolled back.
-  Must be used together with -Rollback.
-
-.PARAMETER Watchlist
-  Defines whether to add the page to the user's watchlist or not.
-
-.PARAMETER Bot
-  Switch used to indicate the edit was performed by a bot.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a minor concern.
-
-.PARAMETER Minor
-  Switch used to indicate the edit is of a major concern.
-
-.PARAMETER Tags
-  Tag the edit according to one or more tags available in Special:Tags
-
-.OUTPUTS
-  Returns a PSObject object containing the results of the edit.
-#>
 function Undo-MWPageEdit
 {
+  <#
+  .SYNOPSIS
+    Undo edits on a page.
+
+  .DESCRIPTION
+    Undo the specified edits of a page or all edits made by the last user to edit the page.
+
+  .PARAMETER Name
+    Name of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER ID
+    ID of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER Summary
+    A short summary to attach to the edit.
+
+  .PARAMETER RevisionID
+    The revision ID to undo, or the revision ID to start undoing from if specifying a range to undo.
+
+  .PARAMETER EndRevisionID
+    The revision ID to stop undoing at. Will only undo one edit if unused.
+
+  .PARAMETER Rollback
+    Switch used to indicate that all edits of the specified user should be rolled back.
+    Must be used together with -User.
+
+  .PARAMETER User
+    Username, ID (#12345), or IP address of the user whose edits are to be rolled back.
+    Must be used together with -Rollback.
+
+  .PARAMETER Watchlist
+    Defines whether to add the page to the user's watchlist or not.
+
+  .PARAMETER Bot
+    Switch used to indicate the edit was performed by a bot.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a minor concern.
+
+  .PARAMETER Minor
+    Switch used to indicate the edit is of a major concern.
+
+  .PARAMETER Tags
+    Tag the edit according to one or more tags available in Special:Tags
+    
+  .INPUTS
+    Name (System.String) of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .INPUTS
+    ID (System.UInt32) of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .INPUTS
+    Summary (System.String) of the edit summary.
+
+  .INPUTS
+    RevisionID (System.UInt32) of the edit to undo.
+
+  .OUTPUTS
+    Returns a PSObject object containing the results of the edit.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageNameUndo')]
   param (
     <#
@@ -7478,37 +7693,43 @@ function Undo-MWPageEdit
 #endregion
 
 #region Update-MWPage
-<#
-.SYNOPSIS
-  Purges the cache for the specified pages.
-
-.DESCRIPTION
-  Supports purging the cache for the specified pages through either
-  the regular method or as an empty edit (using the -Force switch)
-  which can affect deeper backend values (e.g. extensions) in a way that
-  a normal purge might not.
-
-.PARAMETER Name
-  String array of page names to purge. Cannot be used alongside the -ID parameter.
-
-.PARAMETER ID
-  Int array of page IDs to purge. Cannot be used alongside the -Name parameter.
-
-.PARAMETER ForceLinkUpdate
-  Update the links tables and do other secondary data updates.
-
-.PARAMETER ForceRecursiveLinkUpdate
-  Update the links tables and do other secondary data updates,
-  and update the links tables for any page that uses this page as a template.
-
-.PARAMETER Force
-  Forces a deeper update by performing an empty edit on the page.
-
-.OUTPUTS
-  Array of PSObject holding the purge result of the given pages.
-#>
 function Update-MWPage
 {
+  <#
+  .SYNOPSIS
+    Purges the cache for the specified pages.
+
+  .DESCRIPTION
+    Supports purging the cache for the specified pages through either
+    the regular method or as an empty edit (using the -Force switch)
+    which can affect deeper backend values (e.g. extensions) in a way that
+    a normal purge might not.
+
+  .PARAMETER Name
+    String array of page names to purge. Cannot be used alongside the -ID parameter.
+
+  .PARAMETER ID
+    Int array of page IDs to purge. Cannot be used alongside the -Name parameter.
+
+  .PARAMETER ForceLinkUpdate
+    Update the links tables and do other secondary data updates.
+
+  .PARAMETER ForceRecursiveLinkUpdate
+    Update the links tables and do other secondary data updates,
+    and update the links tables for any page that uses this page as a template.
+
+  .PARAMETER Force
+    Forces a deeper update by performing an empty edit on the page.
+    
+  .INPUTS
+    Name (System.String) of the page to edit. Cannot be used alongside the -ID parameter.
+
+  .INPUTS
+    ID (System.UInt32) of the page to edit. Cannot be used alongside the -Name parameter.
+
+  .OUTPUTS
+    Array of PSObject holding the purge result of the given pages.
+  #>
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
     <#
@@ -7521,7 +7742,7 @@ function Update-MWPage
 
     [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
-    [int[]]$ID,
+    [uint32[]]$ID,
 
     [switch]$ForceLinkUpdate,
     [switch]$ForceRecursiveLinkUpdate,
