@@ -1156,6 +1156,9 @@ function Write-MWWarningResultSize
 .PARAMETER Wikitext
   Alias for the -Content parameter.
 
+.PARAMETER NoNewline
+  Switch used to indicate that no newline should be created before/after the new content.
+
 .PARAMETER Prepend
   Switch used to indicate that the specified -Content should be prepended to the page.
 
@@ -1216,6 +1219,8 @@ function Add-MWPage
     [AllowEmptyString()]
     [string]$Wikitext,
 
+    [switch]$NoNewline,
+
     <#
       Append / Prepend
     #>
@@ -1271,6 +1276,14 @@ function Add-MWPage
     if ($Wikitext)
     { $Content = $Wikitext }
 
+    if (-not $NoNewline)
+    {
+      if ($Prepend -and $Content -notmatch "\n$")
+      { $Content = "$Content`n" }
+      elseif ($Content -notmatch "^\n")
+      { $Content = "`n$Content" }
+    }
+
     $Parameters       = @{
       Name            = $Name
       Watchlist       = $Watchlist
@@ -1280,7 +1293,7 @@ function Add-MWPage
     }
 
     if ($Prepend)
-    { $Parameters.Prepend = $Prepend }
+    { $Parameters.Prepend = $true }
     else
     { $Parameters.Append = $true }
 
@@ -1343,6 +1356,9 @@ function Add-MWPage
 
 .PARAMETER Wikitext
   Alias for the -Content parameter.
+
+.PARAMETER NoNewline
+  Switch used to indicate that no newline should be created before/after the new content.
 
 .PARAMETER Index
   The section index to edit, retrieved through Get-MWPage.
@@ -1414,6 +1430,8 @@ function Add-MWSection
     [Parameter(ValueFromPipelineByPropertyName)]
     [AllowEmptyString()]
     [string]$Wikitext,
+
+    [switch]$NoNewline,
 
     <#
       Section based stuff
@@ -1488,8 +1506,13 @@ function Add-MWSection
     if ($Wikitext)
     { $Content = $Wikitext }
 
-    if ($Prepend -and $Content -notmatch "\n$")
-    { $Content += "`n" }
+    if (-not $NoNewline)
+    {
+      if ($Prepend -and $Content -notmatch "\n$")
+      { $Content = "$Content`n" }
+      elseif ($Content -notmatch "^\n")
+      { $Content = "`n$Content" }
+    }
 
     $Parameters    = @{
       Section      = $true
