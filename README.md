@@ -3,18 +3,21 @@ This is a PowerShell module for interfacing with a MediaWiki API endpoint that I
 on and off occasionally over the last couple of years. It was initially created to assist me in
 performing [various maintenance tasks](https://github.com/Aemony/AemonyBot) for the [PCGamingWiki](https://www.pcgamingwiki.com/) (PCGW) community project.
 
-While other more powerful alternatives do exists (e.g. pymediawiki) I personally prefer working
-with and use PowerShell as that is what I also use professionally, and I feel that a well-defined
-PowerShell module manages to expose APIs and endpoints to regular users even on normal Windows
-installations without requiring any major dependencies to be installed.
+A major focus of the module have been to ensure pipeline compatibility across the cmdlets.
+
+-
+
+While other more powerful alternatives exists (e.g. pymediawiki), I prefer working with and use
+PowerShell as I like that a well-defined PowerShell module exposes APIs and datasets to regular
+users and allows them to interact with the dataset without the need of any additional dependencies.
 
 Note that due to its focus on the PCGamingWiki and its outdated version of MediaWiki, the module
-might not support all options/flags exposed in later versions. While most of the development has
+might not support all options/flags added in newer versions. While most of the development has
 been performed by consulting the official MediaWiki Action API documentation, incompatible stuff
 have been disabled in favor of making it work more flawlessly with PCGW.
 
-Due to its rather early stage of development, the module continues to see frequent and massive
-changes throughout its code as I learn, rethink, and redesign components here and there.
+Due to its rather early stage of development, the module might see frequent and massive changes
+throughout the codebase as I learn, rethink, and redesign functions or the internal components.
 
 ## Installation
 *If authenticating, a [bot password](https://www.mediawiki.org/wiki/Manual:Bot_passwords) needs to be used as the module does not support OAuth.*
@@ -38,6 +41,8 @@ changes throughout its code as I learn, rethink, and redesign components here an
 
 ## Examples
 
+*For more real-world examples, visit the [AemonyBot](https://github.com/Aemony/AemonyBot) repository.*
+
 Retrieve the wikitext of a page:
 ```powershell
 Get-MWPage 'NieR: Automata' -Wikitext
@@ -52,10 +57,6 @@ Forces a deeper cache purge of a page by performing an empty edit on it:
 ```powershell
 Get-MWPage 'NieR: Automata' | Update-MWPage -Force
 ```
-
-**PCGamingWiki specific:**
-
-*For more real-world examples, visit the [AemonyBot](https://github.com/Aemony/AemonyBot) repository.*
 
 Performs a Cargo query to retrieve all pages using the SecuROM DRM:
 ```powershell
