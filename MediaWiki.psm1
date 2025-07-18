@@ -3046,7 +3046,6 @@ function Get-MWCargoQuery
 #endregion
 
 #region Get-MWCategoryMember
-Set-Alias -Name Get-MWGroupMember -Value Get-MWCategoryMember
 function Get-MWCategoryMember
 {
   [CmdletBinding(DefaultParameterSetName = 'CategoryName')]
@@ -4177,7 +4176,7 @@ function Get-MWRecentChanges
 }
 #endregion
 
-#region Get-MWLinks
+#region Get-MWLink
 #TODO: Generator. Evaluate?
 function Get-MWLink
 {
@@ -7158,7 +7157,7 @@ function Set-MWSection
   Update the links tables and do other secondary data updates,
   and update the links tables for any page that uses this page as a template.
 
-.PARAMETER NullEdit
+.PARAMETER Force
   Forces a deeper update by performing an empty edit on the page.
 
 .OUTPUTS
@@ -7184,7 +7183,8 @@ function Update-MWPage
     [switch]$ForceRecursiveLinkUpdate,
 
     # Use Set-MWPage to perform a deeper refresh by forcing a null commit on the page
-    [switch]$NullEdit,
+    [Alias('NullEdit')]
+    [switch]$Force,
 
     <#
       Debug
@@ -7218,8 +7218,8 @@ function Update-MWPage
     if ($null -ne $PagesFull.Count)
     { $Max = $PagesFull.Count }
 
-    # -NullEdit
-    if ($NullEdit)
+    # -Force aka perform a null edit
+    if ($Force)
     {
       Write-Verbose "[Update-MWPage] Performing null edits..."
 
