@@ -2556,8 +2556,6 @@ function Find-MWImage
     if ($MaxSize)
     { $Body.aimaxsize = $MaxSize }
 
-    # Need to bind dynamic parameters to local variables apparently?
-
     # BetweenNames
     if ($PSCmdlet.ParameterSetName -eq 'BetweenNames')
     {
@@ -3076,7 +3074,7 @@ function Get-MWCategoryMember
     [string[]]$Type = @('Page', 'SubCat', 'File'),
 
     [ValidateSet('SortKey', 'Timestamp')]
-    [string[]]$SortProperty = 'SortKey',
+    [string]$SortProperty = 'SortKey',
 
     [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
     [string]$ResultSize = 1000,
