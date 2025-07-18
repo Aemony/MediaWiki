@@ -2983,7 +2983,7 @@ function Find-MWRedirectOrphan
 
     ForEach ($Page in $Pages)
     {
-      $Links = Get-MWBackLink -ID $Page.ID
+      $Links = Get-MWBackLink -ID $Page.ID -ResultSize Unlimited
       if ($Links.Count -eq 0)
       {
         $Body = [ordered]@{
