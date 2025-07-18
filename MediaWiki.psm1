@@ -209,73 +209,136 @@ $script:PropertyNamePascal    = @{
 
   <# Site Info #>
   serverinfo                  = 'ServerInfo'
-  name                        = 'Name'
+  dbrepllag                   = 'DatabaseReplicationLag'
+    host                        = 'Host'
+    lag                         = 'Lag'
+  defaultoptions              = 'DefaultOptions'
+   'email-allow-new-users'      = 'AllowMailFromNewUsers'
+  # usebetatoolbar              = 'UseEnhancedToolbar'        # WikiEditor 2010: Enhanced editing toolbar
+  #'usebetatoolbar-cgd'         = 'UseEnhancedToolbarDialogs' # WikiEditor 2010: Enhanced toolbar dialogs/link and table wizards
+  extensions                  = 'Extensions'
+    namemsg                     = 'NameMessage'
+    credits                     = 'Credits'
+    descriptionmsg              = 'DescriptionMessage'
+    license                     = 'License'
+   'license-name'               = 'LicenseName'
+    version                     = 'Version'
+   'vcs-date'                   = 'VcsDate'
+   'vcs-system'                 = 'VcsSystem'
+   'vcs-version'                = 'VcsVersion'
+   'vcs-url'                    = 'VcsUrl'
+  extensiontags               = 'ExtensionTags'
+  fileextensions              = 'FileExtensions'
+    ext                         = 'Ext'
+  functionhooks               = 'FunctionHooks'
   general                     = 'General'
-  allcentralidlookupproviders = 'AllCentralIDLookupProviders'
-  allunicodefixes             = 'AllUnicodeFixes'
-  articlepath                 = 'ArticlePath'
-  base                        = 'Base'
-  case                        = 'Case'
-  categorycollation           = 'CategoryCollation'
-  centralidlookupprovider     = 'CentralIDLookupProvider'
-  citeresponsivereferences    = 'CiteResponsiveReferences'
-  dbtype                      = 'DatabaseType'
-  dbversion                   = 'DatabaseVersion'
-  fallback                    = 'Fallback'
-  fallback8bitEncoding        = 'Fallback8bitEncoding'
-  favicon                     = 'FavoriteIcon'
-  fixarabicunicode            = 'FixArabicUnicode'
-  fixmalayalamunicode         = 'FixMalayalamUnicode'
-  galleryoptions              = 'GalleryOptions'
+    allcentralidlookupproviders = 'AllCentralIDLookupProviders'
+    allunicodefixes             = 'AllUnicodeFixes'
+    articlepath                 = 'ArticlePath'
+    base                        = 'Base'
+    case                        = 'Case'
+    categorycollation           = 'CategoryCollation'
+    centralidlookupprovider     = 'CentralIDLookupProvider'
+    citeresponsivereferences    = 'CiteResponsiveReferences'
+    dbtype                      = 'DatabaseType'
+    dbversion                   = 'DatabaseVersion'
+    fallback                    = 'Fallback'
+    fallback8bitEncoding        = 'Fallback8bitEncoding'
+    favicon                     = 'FavoriteIcon'
+    fixarabicunicode            = 'FixArabicUnicode'
+    fixmalayalamunicode         = 'FixMalayalamUnicode'
+    galleryoptions              = 'GalleryOptions'
+    generator                   = 'Generator'
+    imagelimits                 = 'ImageLimits'
+    imagewhitelistenabled       = 'ImageWhitelistEnabled'
+    interwikimagic              = 'InterwikiMagic'
+    invalidusernamechars        = 'InvalidUsernameCharacters'
+    lang                        = 'Language'
+    langconversion              = 'LanguageConversion'
+    legaltitlechars             = 'LegalTitleCharacters'
+    linkprefix                  = 'LinkPrefix'
+    linkprefixcharset           = 'LinkPrefixCharacterSet'
+    linktrail                   = 'LinkTrail'
+    logo                        = 'Logo'
+    magiclinks                  = 'MagicLinks'
+    mainpage                    = 'MainPage'
+    mainpageisdomainroot        = 'MainPageIsDomainRoot'
+    maxarticlesize              = 'MaximumArticleSize'
+    maxuploadsize               = 'MaximumUploadSize'
+    minuploadchunksize          = 'MinimumUploadChunkSize'
+    misermode                   = 'MiserMode'
+    phpsapi                     = 'PhpServerAPI'
+    phpversion                  = 'PhpVersion'
+    readonly                    = 'ReadOnly'
+    rtl                         = 'RightToLeft'
+    script                      = 'Script'
+    scriptpath                  = 'ScriptPath'
+    server                      = 'Server'
+    servername                  = 'ServerName'
+    sitename                    = 'SiteName'
+    thumblimits                 = 'ThumbnailLimits'
+    time                        = 'Time'
+    timeoffset                  = 'TimeOffset'
+    timezone                    = 'Timezone'
+    titleconversion             = 'TitleConversion'
+    uploadsenabled              = 'UploadsEnabled'
+    variantarticlepath          = 'VariantArticlePath'
+    wikiid                      = 'WikiID'
+    writeapi                    = 'WriteAPI'
+  interwikimap                = 'InterwikiMap'
+    protorel                    = 'ProtocolRelative'
+  libraries                   = 'Libraries'
+  magicwords                  = 'MagicWords'
+   'case-sensitive'             = 'CaseSensitive'
+  protocols                   = 'Protocols'
+  rightsinfo                  = 'RightsInfo'
+  skins                       = 'Skins'
+    default                     = 'Default'
+    unusable                    = 'Unusable'
+  showhooks                   = 'ShowHooks'
+    subscribers                 = 'Subscribers'
+  languages                   = 'Languages'
+    bcp47                       = 'Bcp47'
+  languagevariants            = 'LanguageVariants'
+    fallbacks                   = 'Fallbacks'
+  statistics                  = 'Statistics'
+    activeusers                 = 'ActiveUsers'
+    admins                      = 'Admins'
+    articles                    = 'Articles'
+    edits                       = 'Edits'
+    jobs                        = 'Jobs'
+    users                       = 'Users'
+  uploaddialog                = 'UploadDialog'
+    fields                      = 'Fields'
+    format                      = 'Format'
+      filepage                    = 'FilePage'
+      ownwork                     = 'IsOwnWork'
+      uncategorized               = 'Uncategorized'
+    licensemessages             = 'LicenseMessages'
+      foreign                     = 'Foreign'
+  usergroups                  = 'UserGroups'
+  variables                   = 'Variables'
+
+  name                        = 'Name'
+  author                      = 'Author'
+  ISBN                        = 'ISBN'
+  PMID                        = 'PMID'
+  RFC                         = 'RFC'
   captionLength               = 'CaptionLength'
   height                      = 'Height'
   imageHeight                 = 'ImageHeight'
   width                       = 'Width'
   imageWidth                  = 'ImageWidth'
   imagesPerRow                = 'ImagesPerRow'
-  imagelimits                 = 'ImageLimits'
-  imagewhitelistenabled       = 'ImageWhitelistEnabled'
   mode                        = 'Mode'
   showBytes                   = 'ShowBytes'
   showDimensions              = 'ShowDimensions'
-  generator                   = 'Generator'
-  interwikimagic              = 'InterwikiMagic'
-  invalidusernamechars        = 'InvalidUsernameCharacters'
-  lang                        = 'Language'
-  langconversion              = 'LanguageConversion'
-  legaltitlechars             = 'LegalTitleCharacters'
-  linkprefix                  = 'LinkPrefix'
-  linkprefixcharset           = 'LinkPrefixCharacterSet'
-  linktrail                   = 'LinkTrail'
-  logo                        = 'Logo'
-  magiclinks                  = 'MagicLinks'
-  ISBN                        = 'ISBN'
-  PMID                        = 'PMID'
-  RFC                         = 'RFC'
-  mainpage                    = 'MainPage'
-  mainpageisdomainroot        = 'MainPageIsDomainRoot'
-  maxarticlesize              = 'MaximumArticleSize'
-  maxuploadsize               = 'MaximumUploadSize'
-  minuploadchunksize          = 'MinimumUploadChunkSize'
-  misermode                   = 'MiserMode'
-  phpsapi                     = 'PhpServerAPI'
-  phpversion                  = 'PhpVersion'
-  readonly                    = 'ReadOnly'
-  rtl                         = 'RightToLeft'
-  script                      = 'Script'
-  scriptpath                  = 'ScriptPath'
-  server                      = 'Server'
-  servername                  = 'ServerName'
-  sitename                    = 'SiteName'
-  thumblimits                 = 'ThumbnailLimits'
-  time                        = 'Time'
-  timeoffset                  = 'TimeOffset'
-  timezone                    = 'Timezone'
-  titleconversion             = 'TitleConversion'
-  uploadsenabled              = 'UploadsEnabled'
-  variantarticlepath          = 'VariantArticlePath'
-  wikiid                      = 'WikiID'
-  writeapi                    = 'WriteAPI'
+
+  <# Aliases #>
+  alias                       = 'Alias'
+  aliases                     = 'Aliases'
+  namespacealiases            = 'NamespaceAliases'
+  specialpagealiases          = 'SpecialPageAliases'
 
   <# Namespaces #>
   namespaces                  = 'Namespaces'
@@ -3729,23 +3792,6 @@ function Get-MWEmbeddedIn
     { return $ArrJSON }
 
     return (($ArrJSON.query.embeddedin | Select-Object -First $ResultSize) | ForEach-Object { ConvertFrom-HashtableToPSObject $_ })
-
-<#
-    $ArrPSCustomObject = @()
-    if ($Links = $ArrJSON.query.embeddedin | Select-Object -First $ResultSize)
-    {
-      ForEach ($Page in $Links)
-      {
-        $ObjectProperties = [ordered]@{
-          Namespace = (Get-MWNamespace -NamespaceID $Page.ns).Name
-          Name      = $Page.title
-          ID        = $Page.pageid
-        }
-        $ArrPSCustomObject += New-Object PSObject -Property $ObjectProperties
-      }
-    }
-    return $ArrPSCustomObject
-#>
   }
 }
 #endregion
@@ -4155,9 +4201,9 @@ function Get-MWRecentChanges
 }
 #endregion
 
-#region Get-MWLink
+#region Get-MWPageLink
 #TODO: Generator. Evaluate?
-function Get-MWLink
+function Get-MWPageLink
 {
   [CmdletBinding()]
   param (
@@ -4218,22 +4264,7 @@ function Get-MWLink
     if ($JSON)
     { return $ArrJSON }
 
-    $ArrPSCustomObject = @()
-    if ($Pages = $ArrJSON.query.pages | Select-Object -First $ResultSize)
-    {
-      ForEach ($Page in $Pages)
-      {
-        $ObjectProperties = [ordered]@{
-          Namespace = (Get-MWNamespace -NamespaceID $Page.ns).Name
-          Name      = $Page.title
-          ID        = $Page.pageid
-          Redirect  = ($null -ne $Page.redirect)
-          Missing   = ($null -ne $Page.redirect)
-        }
-        $ArrPSCustomObject += New-Object PSObject -Property $ObjectProperties
-      }
-    }
-    return $ArrPSCustomObject
+    return $ArrJSON.query.pages | Select-Object -First $ResultSize | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
   }
 }
 #endregion

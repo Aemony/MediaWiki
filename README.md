@@ -76,9 +76,8 @@ $Pages | Update-MWPage -Force
   * Interface for [action=parse](https://www.mediawiki.org/wiki/API:Parsing_wikitext).
 * `Get-MWPageInfo` - Retrieves additional properties of a page.
   * Interface for [prop=info](https://www.mediawiki.org/wiki/API:Info).
-* `Get-MWLink` - Retrieve all internal wiki links of a page.
+* `Get-MWPageLink` - Retrieve all internal wiki links of a page.
   * Uses the *links* generator.
-  * **Possible rename to Get-MWPageLink?**
 * `Clear-MWPage` - Clears all content on the specified page.
   * Implemented as a variant of `Set-MWPage`.
 * `Find-MWPage` - List all pages on the wiki.
