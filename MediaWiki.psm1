@@ -1329,6 +1329,9 @@ function Add-MWPage
 .PARAMETER Name
   Name of the page to edit. Cannot be used alongside the -Name parameter.
 
+.PARAMETER FromTitle
+  Alias for the -Name parameter.
+
 .PARAMETER ID
   ID of the page to edit. Cannot be used alongside the -ID parameter.
 
@@ -1389,6 +1392,11 @@ function Add-MWSection
     [Alias('Title', 'Identity', 'PageName')]
     [string]$Name,
 
+    # Alias for $Name, but in a way to support ValueFromPipelineByPropertyName
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'FromTitle', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [string]$FromTitle,
+
     [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [uint32]$ID,
@@ -1410,7 +1418,7 @@ function Add-MWSection
     <#
       Section based stuff
     #>
-    [Parameter(Mandatory)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
     [Alias('SectionIndex')]
     $Index,
 
@@ -1474,6 +1482,9 @@ function Add-MWSection
       return $null
     }
 
+    if ($FromTitle)
+    { $Name = $FromTitle }
+
     if ($Wikitext)
     { $Content = $Wikitext }
 
@@ -1505,6 +1516,384 @@ function Add-MWSection
     { $Parameters.Prepend = $Prepend }
     else
     { $Parameters.Append = $true }
+
+    # Verification
+
+    if ($BaseRevisionID)
+    { $Parameters.BaseRevisionID = $BaseRevisionID }
+
+    if ($BaseTimestamp)
+    { $Parameters.BaseTimestamp = $BaseTimestamp }
+
+    if ($StartTimestamp)
+    { $Parameters.StartTimestamp = $StartTimestamp }
+
+    # Watchlist
+
+    if ($Watchlist)
+    { $Parameters.Watchlist = $Watchlist }
+
+    # Page stuff
+
+    if ($FollowRedirects)
+    { $Parameters.FollowRedirects = $FollowRedirects }
+
+    # Edit tags
+
+    if ($Bot)
+    { $Parameters.Bot = $Bot }
+
+    if ($Minor)
+    { $Parameters.Minor = $Minor }
+
+    if ($Major)
+    { $Parameters.Major = $Major }
+
+    if ($Tag)
+    { $Parameters.Tag = $Tag }
+
+    return Set-MWPage @Parameters
+  }
+
+  End { }
+}
+#endregion
+
+#region Clear-MWPage
+<#
+.SYNOPSIS
+  Clears the contents of the specified page.
+
+.DESCRIPTION
+  The cmdlet is a front for Set-MWPage that makes it easier to clear a page.
+
+.PARAMETER Name
+  Name of the page to edit. Cannot be used alongside the -Name parameter.
+
+.PARAMETER ID
+  ID of the page to edit. Cannot be used alongside the -ID parameter.
+
+.PARAMETER Summary
+  A short summary to attach to the edit.
+
+.PARAMETER BaseRevisionID
+  ID of the base revision, used to detect edit conflicts.
+
+.PARAMETER BaseTimestamp
+  Timestamp of the base revision, used to detect edit conflicts.
+
+.PARAMETER StartTimestamp
+  Timestamp when the editing process began, used to detect edit conflicts.
+
+.PARAMETER Watchlist
+  Defines whether to add the page to the user's watchlist or not.
+
+.PARAMETER FollowRedirects
+  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+.PARAMETER Bot
+  Switch used to indicate the edit was performed by a bot.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a minor concern.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a major concern.
+
+.PARAMETER Tag
+  Tag the edit according to one or more tags available in Special:Tags
+
+.OUTPUTS
+  Returns a PSObject object containing the results of the edit.
+#>
+function Clear-MWPage
+{
+  [CmdletBinding(DefaultParameterSetName = 'PageName')]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('Title', 'Identity', 'PageName')]
+    [string]$Name,
+
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Alias('PageID')]
+    [uint32]$ID,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
+    [string]$Summary,
+
+    <#
+      Verification
+    #>
+    [Alias('BaseRevID')]
+    [uint32]$BaseRevisionID,
+    [string]$BaseTimestamp,
+    [string]$StartTimestamp,
+
+    <#
+      Watchlist
+    #>
+    [Watchlist]$Watchlist = [Watchlist]::Preferences,
+
+    <#
+      Page related stuff
+    #>
+    [switch]$FollowRedirects, # Resolve redirects?
+
+    <#
+      Tags applied to the edit
+    #>
+    [switch]$Bot,
+    [switch]$Minor,
+    [switch]$Major,
+    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    $Parameters    = @{
+      Content      = ''
+      NoCreate     = $true
+      JSON         = $JSON
+    }
+
+    if ($Name)
+    { $Parameters.Name = $Name }
+
+    if ($ID)
+    { $Parameters.ID = $ID }
+
+    if ($Summary)
+    { $Parameters.Summary = $Summary }
+
+    # Verification
+
+    if ($BaseRevisionID)
+    { $Parameters.BaseRevisionID = $BaseRevisionID }
+
+    if ($BaseTimestamp)
+    { $Parameters.BaseTimestamp = $BaseTimestamp }
+
+    if ($StartTimestamp)
+    { $Parameters.StartTimestamp = $StartTimestamp }
+
+    # Watchlist
+
+    if ($Watchlist)
+    { $Parameters.Watchlist = $Watchlist }
+
+    # Page stuff
+
+    if ($FollowRedirects)
+    { $Parameters.FollowRedirects = $FollowRedirects }
+
+    # Edit tags
+
+    if ($Bot)
+    { $Parameters.Bot = $Bot }
+
+    if ($Minor)
+    { $Parameters.Minor = $Minor }
+
+    if ($Major)
+    { $Parameters.Major = $Major }
+
+    if ($Tag)
+    { $Parameters.Tag = $Tag }
+
+    return Set-MWPage @Parameters
+  }
+
+  End { }
+}
+#endregion
+
+#region Clear-MWSection
+<#
+.SYNOPSIS
+  Clears the contents of the specified section on the given page.
+
+.DESCRIPTION
+  The cmdlet is a front for Set-MWPage that makes it easier to clear a specific section.
+
+.PARAMETER Name
+  Name of the page to edit. Cannot be used alongside the -Name parameter.
+
+.PARAMETER FromTitle
+  Alias for the -Name parameter.
+
+.PARAMETER ID
+  ID of the page to edit. Cannot be used alongside the -ID parameter.
+
+.PARAMETER Summary
+  A short summary to attach to the edit.
+
+.PARAMETER Index
+  The section index to edit, retrieved through Get-MWPage.
+
+.PARAMETER BaseRevisionID
+  ID of the base revision, used to detect edit conflicts.
+
+.PARAMETER BaseTimestamp
+  Timestamp of the base revision, used to detect edit conflicts.
+
+.PARAMETER StartTimestamp
+  Timestamp when the editing process began, used to detect edit conflicts.
+
+.PARAMETER Watchlist
+  Defines whether to add the page to the user's watchlist or not.
+
+.PARAMETER FollowRedirects
+  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+.PARAMETER Bot
+  Switch used to indicate the edit was performed by a bot.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a minor concern.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a major concern.
+
+.PARAMETER Tag
+  Tag the edit according to one or more tags available in Special:Tags
+
+.OUTPUTS
+  Returns a PSObject object containing the results of the edit.
+#>
+function Clear-MWSection
+{
+  [CmdletBinding(DefaultParameterSetName = 'PageName')]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('Title', 'Identity', 'PageName')]
+    [string]$Name,
+
+    # Alias for $Name, but in a way to support ValueFromPipelineByPropertyName
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'FromTitle', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [string]$FromTitle,
+
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Alias('PageID')]
+    [uint32]$ID,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
+    [string]$Summary,
+
+    <#
+      Section based stuff
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
+    [Alias('SectionIndex')]
+    $Index,
+
+    <#
+      Verification
+    #>
+    [Alias('BaseRevID')]
+    [uint32]$BaseRevisionID,
+    [string]$BaseTimestamp,
+    [string]$StartTimestamp,
+
+    <#
+      Watchlist
+    #>
+    [Watchlist]$Watchlist = [Watchlist]::Preferences,
+
+    <#
+      Page related stuff
+    #>
+    [switch]$FollowRedirects, # Resolve redirects?
+
+    <#
+      Tags applied to the edit
+    #>
+    [switch]$Bot,
+    [switch]$Minor,
+    [switch]$Major,
+    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    if ($FromTitle)
+    { $Name = $FromTitle }
+
+    $Current = @{
+      Wikitext     = $true
+      SectionIndex = $Index
+    }
+
+    if ($Name)
+    { $Current.Name = $Name }
+    
+    if ($ID)
+    { $Current.ID = $ID }
+
+    $SectionContent = Get-MWSection @Current
+
+    if ($null -eq $SectionContent)
+    {
+      Write-Warning 'Could not retrieve section content from the specified page!'
+      return $null
+    }
+
+    # Clearing the section means retaining just the section header...
+    # Header will always be the first line of the section content
+    $NewContent = (($SectionContent.Wikitext) -split '\n')[0]
+
+    $Parameters    = @{
+      Section      = $true
+      SectionIndex = $Index
+      Content      = $NewContent
+      NoCreate     = $true
+      JSON         = $JSON
+    }
+
+    if ($Name)
+    { $Parameters.Name = $Name }
+
+    if ($ID)
+    { $Parameters.ID = $ID }
+
+    if ($Summary)
+    { $Parameters.Summary = $Summary }
 
     # Verification
 
@@ -1906,9 +2295,10 @@ function ConvertTo-MWParsedOutput
       if ($Properties -contains '*')
       { $Properties = @('Categories', 'EncodedJSConfigVars', 'ExternalLinks', 'HeadHtml', 'Images', 'Indicators', 'IwLinks', 'JSConfigVars', 'LangLinks', 'LimitReportData', 'LimitReportHtml', 'Links', 'Modules', 'ParseTree', 'ParseWarnings', 'Properties', 'Templates', 'Text', 'Wikitext') }
 
-      if ($Wikitext -and $Properties -notcontains 'wikitext')
+      if ($Properties -notcontains 'wikitext')
       { $Properties += @('wikitext') }
-      elseif ($ParsedText -and $Properties -notcontains 'text')
+
+      if ($Properties -notcontains 'text')
       { $Properties += @('text') }
 
       $Body.prop = ($Properties.ToLower() -join '|')
@@ -2322,7 +2712,7 @@ function Find-MWPage
   [CmdletBinding(DefaultParameterSetName = 'None')]
   param
   (
-    [parameter(ValueFromPipeline, ValueFromPipelineByPropertyName, Position=0)]
+    [parameter(ValueFromPipelineByPropertyName, Position=0)]
     [Alias('PageName', 'Prefix')]
     [string]$Name,
 
@@ -2491,12 +2881,12 @@ function Get-MWBackLink
     <#
       Core parameters
     #>
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string]$Name,
 
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int]$ID,
 
@@ -2672,11 +3062,11 @@ function Get-MWCategoryMember
 {
   [CmdletBinding(DefaultParameterSetName = 'CategoryName')]
   param (
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'CategoryName', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'CategoryName', Position=0)]
     [Alias('Category', 'Identity', 'Group')]
     [string]$Name,
 
-    [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'CategoryID', Position=0)]
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'CategoryID', Position=0)]
     [Alias('CategoryID')]
     [int]$ID,
 
@@ -3184,12 +3574,12 @@ function Get-MWDuplicateFile
     <#
       Core parameters
     #>
-    [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string[]]$Name,
 
-    [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int[]]$ID,
 
@@ -3297,12 +3687,12 @@ function Get-MWEmbeddedIn
     <#
       Core parameters
     #>
-    [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string]$Name,
 
-    [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int]$ID,
 
@@ -3401,12 +3791,12 @@ function Get-MWImageInfo
     <#
       Core parameters
     #>
-    [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string[]]$Name,
 
-    [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int[]]$ID,
 
@@ -3486,12 +3876,12 @@ function Get-MWImageUsage
     <#
       Core parameters
     #>
-    [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string[]]$Name,
 
-    [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int[]]$ID,
 
@@ -3807,12 +4197,12 @@ function Get-MWLink
     <#
       Core parameters
     #>
-    [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string[]]$Name,
 
-    [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int[]]$ID,
 
@@ -4011,7 +4401,7 @@ function Get-MWNamespacePage
   [CmdletBinding()]
   param
   (
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, Position=0)]
     [string]$Name,
 
     [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
@@ -4081,12 +4471,12 @@ function Get-MWPage
     <#
       Core parameters
     #>
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string]$Name,
 
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int]$ID,
 
@@ -4130,6 +4520,9 @@ function Get-MWPage
       return $null
     }
 
+    if (-not $ParsedText -and -not $Wikitext)
+    { $Wikitext = $true }
+
     $Body = [ordered]@{
       action = 'parse'
     }
@@ -4149,7 +4542,8 @@ function Get-MWPage
 
       if ($Wikitext -and $Properties -notcontains 'wikitext')
       { $Properties += @('wikitext') }
-      elseif ($ParsedText -and $Properties -notcontains 'text')
+
+      if ($ParsedText -and $Properties -notcontains 'text')
       { $Properties += @('text') }
 
       $Body.prop = ($Properties.ToLower() -join '|')
@@ -4220,12 +4614,12 @@ function Get-MWPageInfo
     <#
       Core parameters
     #>
-    [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string[]]$Name,
 
-    [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int[]]$ID,
 
@@ -4318,6 +4712,9 @@ function Get-MWProtectionType
 .PARAMETER Name
   Name of the page to retrieve. Cannot be used alongside the -Name parameter.
 
+.PARAMETER FromTitle
+  Alias for the -Name parameter.
+
 .PARAMETER ID
   ID of the page to retrieve. Cannot be used alongside the -ID parameter.
 
@@ -4346,19 +4743,24 @@ function Get-MWSection
     <#
       Core parameters
     #>
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string]$Name,
 
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    # Alias for $Name, but in a way to support ValueFromPipelineByPropertyName
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'FromTitle', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [string]$FromTitle,
+
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int]$ID,
 
     <#
       Section based stuff
     #>
-    [Parameter(Mandatory)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
     [Alias('SectionIndex')]
     $Index,
 
@@ -4383,6 +4785,12 @@ function Get-MWSection
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
     }
+
+    if ($FromTitle)
+    { $Name = $FromTitle }
+
+    if (-not $ParsedText -and -not $Wikitext)
+    { $Wikitext = $true }
 
     $Parameters       = @{
       SectionIndex    = $Index
@@ -4631,12 +5039,12 @@ function Get-MWUser
     <#
       Core parameters
     #>
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'UserName', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'UserName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('UserName')]
     [string[]]$Name,
 
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'UserID', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'UserID', Position=0)]
     [Alias('UserID')]
     [int[]]$ID,
 
@@ -5619,6 +6027,11 @@ function Remove-MWSection
     [Alias('Title', 'Identity', 'PageName')]
     [string]$Name,
 
+    # Alias for $Name, but in a way to support ValueFromPipelineByPropertyName
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'FromTitle', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [string]$FromTitle,
+
     [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [uint32]$ID,
@@ -5630,7 +6043,7 @@ function Remove-MWSection
     <#
       Section based stuff
     #>
-    [Parameter(Mandatory)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
     [Alias('SectionIndex')]
     $Index,
 
@@ -5675,6 +6088,9 @@ function Remove-MWSection
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
     }
+
+    if ($FromTitle)
+    { $Name = $FromTitle }
 
     $Parameters    = @{
       Section      = $true
@@ -5744,12 +6160,12 @@ function Remove-MWPage
     <#
       Core parameters
     #>
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string[]]$Name,
 
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int[]]$ID,
 
@@ -5839,6 +6255,9 @@ function Remove-MWPage
 .PARAMETER Name
   Name of the page to edit. Cannot be used alongside the -Name parameter.
 
+.PARAMETER FromTitle
+  Alias for the -Name parameter.
+
 .PARAMETER ID
   ID of the page to edit. Cannot be used alongside the -ID parameter.
 
@@ -5893,6 +6312,11 @@ function Rename-MWSection
     [Alias('Title', 'Identity', 'PageName')]
     [string]$Name,
 
+    # Alias for $Name, but in a way to support ValueFromPipelineByPropertyName
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'FromTitle', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [string]$FromTitle,
+
     [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [uint32]$ID,
@@ -5904,7 +6328,7 @@ function Rename-MWSection
     <#
       Section based stuff
     #>
-    [Parameter(Mandatory)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
     [Alias('SectionIndex')]
     $Index,
 
@@ -5953,6 +6377,9 @@ function Rename-MWSection
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
     }
+
+    if ($FromTitle)
+    { $Name = $FromTitle }
 
     $Current = @{
       Wikitext     = $true
@@ -6494,6 +6921,9 @@ function Set-MWPage
 .PARAMETER Name
   Name of the page to edit. Cannot be used alongside the -Name parameter.
 
+.PARAMETER FromTitle
+  Alias for the -Name parameter.
+
 .PARAMETER ID
   ID of the page to edit. Cannot be used alongside the -ID parameter.
 
@@ -6551,6 +6981,11 @@ function Set-MWSection
     [Alias('Title', 'Identity', 'PageName')]
     [string]$Name,
 
+    # Alias for $Name, but in a way to support ValueFromPipelineByPropertyName
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'FromTitle', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [string]$FromTitle,
+
     [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [uint32]$ID,
@@ -6572,7 +7007,7 @@ function Set-MWSection
     <#
       Section based stuff
     #>
-    [Parameter(Mandatory)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
     [Alias('SectionIndex')]
     $Index,
 
@@ -6623,6 +7058,9 @@ function Set-MWSection
       Write-Warning "-Content and -Wikitext cannot be used at the same time!"
       return $null
     }
+
+    if ($FromTitle)
+    { $Name = $FromTitle }
 
     if ($Wikitext)
     { $Content = $Wikitext }
@@ -6750,12 +7188,12 @@ function Update-MWPage
     <#
       Core parameters
     #>
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string[]]$Name,
 
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
     [Alias('PageID')]
     [int[]]$ID,
 
