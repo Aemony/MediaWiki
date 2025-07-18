@@ -72,11 +72,11 @@ $Pages | Update-MWPage -Force
 **Pages**
 * `Add-MWPage` - Add content to a page.
   * Implemented as a variant of `Set-MWPage`.
-* `Get-MWPage` -  Retrieves information about the given page. Use `-Wikitext` to also fetch the wikitext of the page.
+* `Get-MWPage` -  Retrieves information about a page. Use `-Wikitext` to also fetch the wikitext of the page.
   * Interface for [action=parse](https://www.mediawiki.org/wiki/API:Parsing_wikitext).
-* `Get-MWPageInfo` - Retrieves additional properties of the given page.
+* `Get-MWPageInfo` - Retrieves additional properties of a page.
   * Interface for [prop=info](https://www.mediawiki.org/wiki/API:Info).
-* `Get-MWLink` - Retrieve all internal wiki links of the given page.
+* `Get-MWLink` - Retrieve all internal wiki links of a page.
   * Uses the *links* generator.
   * **Possible rename to Get-MWPageLink?**
 * `Clear-MWPage` - Clears all content on the specified page.
@@ -91,52 +91,54 @@ $Pages | Update-MWPage -Force
 * `Rename-MWPage` - Alias for `Move-MWPage`.
 * `Search-MWPage` - Perform a full text search on the site.
   * Interface for [list=search](https://www.mediawiki.org/wiki/API:Search).
-* `Set-MWPage` - Edit a page.
+* `Set-MWPage` - Edit the contents of a page.
   * Interface for [action=edit](https://www.mediawiki.org/wiki/API:Edit).
 * `Update-MWPage` - Purges the cache for a page. Use `-Force` for a deeper purge by performing an empty edit of the page.
   * An empty edit (`-Force`) can at times trigger backend refreshes (e.g. extensions such as Cargo) that otherwise would not be affected by a normal cache purge.
   * Interface for [action=purge](https://www.mediawiki.org/wiki/API:Purge). Imlemented as a variant of `Set-MWPage` when used with `-Force`.
 
 **Sections**
-* `Add-MWSection` - Add content to the given section.
+* `Add-MWSection` - Add content to a section.
   * Implemented as a variant of `Set-MWPage`.
-* `Clear-MWSection` - Clear the content from the given section.
+* `Clear-MWSection` - Clear the content from a section.
   * Implemented as a variant of `Set-MWPage`.
-* `Get-MWSection` - Retrieves information about the given section. Use `-Wikitext` to also fetch the wikitext of the section.
+* `Get-MWSection` - Retrieves information about a section. Use `-Wikitext` to also fetch the wikitext of the section.
   * Implemented as a variant of `Get-MWPage`.
-* `Remove-MWSection` - Removes the given section from the page.
+* `Remove-MWSection` - Removes a section.
   * Implemented as a variant of `Set-MWPage`.
-* `Rename-MWSection` - Changes the title/header of the given section.
+* `Rename-MWSection` - Changes the title/header of a section.
+  * Implemented as a variant of `Set-MWPage`.
+* `Set-MWSection` - Sets the content of a section.
   * Implemented as a variant of `Set-MWPage`.
 
 **Images**
 * `Find-MWImage` - List all image files.
   * Interface for [list=allimages](https://www.mediawiki.org/wiki/API:Allimages).
-* `Get-MWDuplicateFile` - Find duplicates of the given image, if any exists.
+* `Get-MWDuplicateFile` - Find duplicates of an image, if any exists.
   * Uses the *allimages* generator.
-* `Get-MWImageInfo` - List file information and upload history for the given image.
+* `Get-MWImageInfo` - List file information and upload history for an image.
   * Interface for [prop=imageinfo](https://www.mediawiki.org/wiki/API:Imageinfo).
-* `Get-MWImageUsage` - List all pages that use the given image.
+* `Get-MWImageUsage` - List all pages that use an image.
   * Interface for [list=imageusage](https://www.mediawiki.org/wiki/API:Imageusage).
 
 **Links / Redirects**
-* `Get-MWBackLink` - List all pages which links to the given page.
+* `Get-MWBackLink` - List all pages which links to a page.
   * Interface for [list=backlinks](https://www.mediawiki.org/wiki/API:Backlinks).
 * `Find-MWRedirect` - Variant of `Find-MWPage` to list all redirect pages.
 * `Find-MWOrphanedRedirect` - Helper to generate a list of all orphaned redirects. Takes a long time with ~50k pages, so be warned. :) 
 
 **Categories**
-* `Get-MWCategoryMember` - List all pages in the given category.
+* `Get-MWCategoryMember` - List all pages in a category.
   * Interface for [list=categorymembers](https://www.mediawiki.org/wiki/API:Categorymembers).
 
 **Templates** 
-* `Get-MWEmbeddedIn` - List all other pages the given page is embedded in.
+* `Get-MWEmbeddedIn` - List all other pages a page is embedded in.
   * Interface for [list=embeddedin](https://www.mediawiki.org/wiki/API:Embeddedin).
 * `Get-MWTranscludedIn` - Alias for `Get-MWEmbeddedIn`. 
 
 **Namespaces**
 * `Get-MWNamespace` - Retrieves all registered namespaces on the site.
-* `Get-MWNamespacePage` - List all pages in the given namespace.
+* `Get-MWNamespacePage` - List all pages in a namespace.
   * Implemented as a variant of `Find-MWPage`.
 
 **Recent Changes**
@@ -175,7 +177,7 @@ $Pages | Update-MWPage -Force
 * `Get-MWCargoQuery` - Performs a query against the Cargo backend, provided [Extension:Cargo](https://www.mediawiki.org/wiki/Extension:Cargo) is installed.
 
 **Misc**
-* `ConvertTo-MWParsedOutput` - Have the site parse the given wikitext and reply with the results.
+* `ConvertTo-MWParsedOutput` - Have the site parse the input wikitext and reply with the results.
   * Limited interface for [action=parse](https://www.mediawiki.org/wiki/API:Parsing_wikitext).
 * `Invoke-MWApiContinueRequest` - Useful helper that automatically handles continuing API requests when there are more results available.
 * `Invoke-MWApiRequest` - Handles the core aspects of performing an API request.
