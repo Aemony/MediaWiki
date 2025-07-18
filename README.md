@@ -142,7 +142,8 @@ $Pages | Update-MWPage -Force
   * Implemented as a variant of `Find-MWPage`.
 
 **Recent Changes**
-* `Get-MWRecentChanges` - Interface for [list=recentchanges](https://www.mediawiki.org/wiki/API:RecentChanges) to list all recent changes on the site.
+* `Get-MWRecentChanges` - List all recent changes on the site.
+  * Interface for [list=recentchanges](https://www.mediawiki.org/wiki/API:RecentChanges).
 
 **Connection**
 * `Connect-MWSession` - Connect to an API endpoint.
