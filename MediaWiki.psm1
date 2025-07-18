@@ -113,37 +113,9 @@ Write-Host ""
 
 # --------------------------------------------------------------------------------------- #
 #                                                                                         #
-#                                    GLOBAL VARIABLEs                                     #
+#                                      GLOBAL STUFF                                       #
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
-
-# Global variable to hold the web session
-$global:MWSession
-
-# Script variable to indicate the location of the saved config file
-$script:ConfigFileName = $env:LOCALAPPDATA + '\PowerShell\MediaWiki\config.json'
-
-# Script variables used internally during runtime
-$script:MWSessionGuest = $false
-$script:MWSessionBot   = $false
-$script:CSRFToken      = $null
-$script:Config         = @{
-  Protocol             = $null
-  Wiki                 = $null
-  API                  = $null
-  URI                  = $null
-  Persistent           = $false
-}
-$script:Cache          = @{
-  SiteInfo             = $null
-  UserInfo             = $null
-  Namespaces           = $null
-  RestrictionTypes     = @( )
-  RestrictionLevels    = @( )
-}
-
-# Global configurations
-$script:ProgressPreference = 'SilentlyContinue' # Suppress progress bar (speeds up Invoke-WebRequest by a ton)
 
 # Enum used to indicate watchlist parameter value for cmdlets
 enum Watchlist
@@ -160,6 +132,52 @@ enum SearchType
   NearMatch
   Text
   Title
+}
+
+# Enum used to indicate token type for Get-MWToken
+enum TokenType
+{
+  None
+  CSRF
+  Patrol
+  Rollback
+  UserRights
+  Watch
+}
+
+# Global configurations
+$script:ProgressPreference = 'SilentlyContinue' # Suppress progress bar (speeds up Invoke-WebRequest by a ton)
+
+# Global variable to hold the web session
+$global:MWSession
+
+# Script variable to indicate the location of the saved config file
+$script:ConfigFileName = $env:LOCALAPPDATA + '\PowerShell\MediaWiki\config.json'
+
+# Script variables used internally during runtime
+$script:MWSessionGuest = $false
+$script:MWSessionBot   = $false
+$script:MWTokens       = @{
+  CreateAccount        = $null
+  CSRF                 = $null # Cross-site request forgery (CSRF)
+  Patrol               = $null
+  Rollback             = $null # Rollback token
+  UserRights           = $null
+  Watch                = $null
+}
+$script:Config         = @{
+  Protocol             = $null
+  Wiki                 = $null
+  API                  = $null
+  URI                  = $null
+  Persistent           = $false
+}
+$script:Cache          = @{
+  SiteInfo             = $null
+  UserInfo             = $null
+  Namespaces           = $null
+  RestrictionTypes     = @( )
+  RestrictionLevels    = @( )
 }
 
 # PowerShell prefers using pascal case wherever is possible so let us rename as many property names as possible.
@@ -1948,8 +1966,8 @@ function Clear-MWSession
     if ($null -ne $script:MWSessionBot)
     { Clear-Variable MWSessionBot -Scope Script }
 
-    if ($null -ne $script:CSRFToken)
-    { Clear-Variable CsrfToken -Scope Script }
+    if ($null -ne $script:MWTokens)
+    { Clear-Variable MWTokens -Scope Script }
 
     if ($null -ne $script:Config)
     { Clear-Variable Config -Scope Script }
@@ -1962,7 +1980,15 @@ function Clear-MWSession
     
     $script:MWSessionGuest = $false
     $script:MWSessionBot   = $false
-    $script:CSRFToken      = $null
+
+    $script:MWTokens       = @{
+      CreateAccount        = $null
+      CSRF                 = $null
+      Patrol               = $null
+      Rollback             = $null
+      UserRights           = $null
+      Watch                = $null
+    }
 
     $script:Config         = @{
       Protocol             = $null
@@ -2334,10 +2360,10 @@ function Disconnect-MWSession
 
     $Body    = [ordered]@{
       action = 'logout'
-      token  = (Get-MWCsrfToken) # An edit token is required to sign out...
     }
-    
-    $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -NoAssert
+
+    # An edit token is required to sign out?!
+    $Response = Invoke-MWApiRequest -Body $Body -Method POST -Token CSRF -IgnoreDisconnect -NoAssert
 
     Clear-MWSession
 
@@ -3406,53 +3432,6 @@ function Get-MWChangeTag
     { $PSCustomObject = ($PSCustomObject | Where-Object { $_.Source -eq 'manual' }) }
 
     return $PSCustomObject
-  }
-}
-#endregion
-
-#region Get-MWCsrfToken
-function Get-MWCsrfToken
-{
-  [CmdletBinding()]
-  param (
-    [switch]$Force,
-    
-    <#
-      Debug
-    #>
-    [switch]$JSON
-  )
-
-  Begin { }
-
-  Process { }
-
-  End
-  {
-    if ($null -eq $script:Config.URI)
-    {
-      Write-Warning "Not connected to a MediaWiki instance."
-      return $null
-    }
-
-    if ($null -eq $script:CSRFToken -or $Force)
-    {
-      $Body = [ordered]@{
-        action = 'query'
-        meta   = 'tokens'
-        type   = 'csrf'
-      }
-
-      $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -NoAssert
-
-      if ($Response.query.tokens.csrftoken)
-      { $script:CSRFToken = $Response.query.tokens.csrftoken }
-
-      if ($JSON)
-      { return $Response }
-    }
-
-    return $script:CSRFToken
   }
 }
 #endregion
@@ -4916,6 +4895,88 @@ function Get-MWSiteInfo
 }
 #endregion
 
+#region Get-MWToken
+<#
+.SYNOPSIS
+  Retrieves a token of the requested type.
+
+.PARAMETER Type
+  Indicates which type of token to retrieve.
+
+.PARAMETER Force
+  Ignore any cached token and retrieve a new one.
+
+.OUTPUTS
+  The retrieved token as a string.
+#>
+function Get-MWToken
+{
+  [CmdletBinding()]
+  param (
+    [TokenType]$Type = [TokenType]::None,
+    [switch]$Force,
+    
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process { }
+
+  End
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    # Return all tokens if not specifying any
+    if ($Type -eq [TokenType]::None)
+    { return $script:MWTokens }
+
+    $TypeAsString = $Type.ToString()
+
+    if ($null -eq $script:MWTokens.$TypeAsString -or $Force)
+    {
+      $Body = [ordered]@{
+        action = 'query'
+        meta   = 'tokens'
+        type   = $Type.ToString().ToLower()
+      }
+
+      $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -NoAssert
+
+      if ($Response.query.tokens.createaccounttoken)
+      { $script:MWTokens.$TypeAsString = $Response.query.tokens.createaccounttoken }
+
+      if ($Response.query.tokens.csrftoken)
+      { $script:MWTokens.$TypeAsString = $Response.query.tokens.csrftoken }
+
+      if ($Response.query.tokens.patroltoken)
+      { $script:MWTokens.$TypeAsString = $Response.query.tokens.patroltoken }
+
+      if ($Response.query.tokens.rollbacktoken)
+      { $script:MWTokens.$TypeAsString = $Response.query.tokens.rollbacktoken }
+
+      if ($Response.query.tokens.userrightstoken)
+      { $script:MWTokens.$TypeAsString = $Response.query.tokens.userrightstoken }
+
+      if ($Response.query.tokens.watchtoken)
+      { $script:MWTokens.$TypeAsString = $Response.query.tokens.watchtoken }
+
+      if ($JSON)
+      { return $Response }
+    }
+
+    return $script:MWTokens.$TypeAsString
+  }
+}
+#endregion
+
 #region Get-MWUnreadNotifications
 <# Unread changes on the watchlist?
 function Get-MWUnreadNotifications
@@ -5305,6 +5366,8 @@ function Invoke-MWApiRequest
     [Parameter(Mandatory, Position=1)]
     $Method,
 
+    [TokenType]$Token = [TokenType]::None,
+
     [Parameter()]
     $Uri = ($script:Config.URI),
 
@@ -5322,9 +5385,9 @@ function Invoke-MWApiRequest
     [string]
     $SessionVariable,
 
-    # Used by Disconnect-MWSession and Get-MWCsrfToken to not renew expired CSRF/edit tokens
+    # Used by Disconnect-MWSession and Get-MWToken to not renew an expired CSRF/edit token
     [switch]$IgnoreDisconnect,
-    # Used by Disconnect-MWSession and Get-MWCsrfToken and Connect-MWSession to suppress adding asserings to the calls
+    # Used by Disconnect-MWSession and Get-MWToken and Connect-MWSession to suppress adding asserings to the calls
     [switch]$NoAssert,
 
     # Used to export errors/warnings to a JSON file
@@ -5335,6 +5398,10 @@ function Invoke-MWApiRequest
 
   Process
   {
+    # Insert any required token
+    if ($Token -ne [TokenType]::None)
+    { $Body.token = Get-MWToken -Type $Token }
+
     # Enforce JSON v2, with plain text error formatting
     $Body          += @{
       format        = 'json'
@@ -5372,9 +5439,9 @@ function Invoke-MWApiRequest
       # Reset every loop
       $Retry         = $false
 
-      # If we have signed out/in again, we need to renew the edit token as it has expired
-      if ($null -ne $Body.token -and $Body.token -ne (Get-MWCsrfToken))
-      { $Body.token = (Get-MWCsrfToken) }
+      # If we have signed out/in again, we need to renew the required token as it has expired
+      if ($null -ne $Body.token -and $Body.token -ne (Get-MWToken -Type $Token))
+      { $Body.token = (Get-MWToken -Type $Token) }
 
       $RequestParams = @{
         Body         = $Body
@@ -5554,7 +5621,6 @@ function Move-MWPage
       to        = $NewName
       reason    = $Reason
       watchlist = $Watchlist.ToString().ToLower()
-      token     = (Get-MWCsrfToken)
     }
 
     if ($NoRedirect)
@@ -5569,7 +5635,7 @@ function Move-MWPage
     if ($Force)
     { $Body.ignorewarnings = $true }
 
-    $ArrJSON += Invoke-MWApiRequest -Body $Body -Method POST
+    $ArrJSON += Invoke-MWApiRequest -Body $Body -Method POST -Token CSRF
   }
 
   End
@@ -6005,7 +6071,6 @@ function Remove-MWPage
         action    = 'delete'
         reason    = $Reason
         watchlist = $Watchlist.ToString().ToLower()
-        token     = (Get-MWCsrfToken)
       }
 
       if ($ID)
@@ -6013,7 +6078,7 @@ function Remove-MWPage
       else
       { $Body.title = $Page }
 
-      $ArrJSON += Invoke-MWApiRequest -Body $Body -Method POST
+      $ArrJSON += Invoke-MWApiRequest -Body $Body -Method POST -Token CSRF
     }
   }
 
@@ -6603,6 +6668,12 @@ function Search-MWPage
 .PARAMETER Wikitext
   Alias for the -Content parameter.
 
+.PARAMETER Append
+  Switch used to indicate that the specified -Content should be appended to the page or specified -SectionIndex.
+
+.PARAMETER Prepend
+  Switch used to indicate that the specified -Content should be prepended to the page or specified -SectionIndex.
+
 .PARAMETER Section
   Switch used to indicate that the edit concerns section should be added.
 
@@ -6611,12 +6682,6 @@ function Search-MWPage
 
 .PARAMETER SectionTitle
   The title of the new section.
-
-.PARAMETER Append
-  Switch used to indicate that the specified -Content should be appended to the page or specified -SectionIndex.
-
-.PARAMETER Prepend
-  Switch used to indicate that the specified -Content should be prepended to the page or specified -SectionIndex.
 
 .PARAMETER BaseRevisionID
   ID of the base revision, used to detect edit conflicts.
@@ -6654,6 +6719,15 @@ function Search-MWPage
 .PARAMETER Tags
   Tag the edit according to one or more tags available in Special:Tags
 
+.PARAMETER Undo
+  Switch used to indicate that an edit should be undone. Cannot be used with -Content, -Wikitext, -Append, or -Prepend.
+
+.PARAMETER RevisionID
+  The revision ID to undo, or the revision ID to start undoing from if specifying a range to undo.
+
+.PARAMETER EndRevisionID
+  The revision ID to stop undoing at. Will only undo one edit if unused.
+
 .OUTPUTS
   Returns a PSObject object containing the results of the edit.
 #>
@@ -6665,11 +6739,13 @@ function Set-MWPage
       Core parameters
     #>
     [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageNameUndo', Position=0)]
     [ValidateNotNullOrEmpty()]
     [Alias('Title', 'Identity', 'PageName')]
     [string]$Name,
 
     [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageIDUndo', Position=0)]
     [Alias('PageID')]
     [uint32]$ID,
 
@@ -6677,13 +6753,15 @@ function Set-MWPage
     [AllowEmptyString()]
     [string]$Summary,
 
-    [Parameter(ValueFromPipelineByPropertyName)]
+    [Parameter(ValueFromPipelineByPropertyName, ParameterSetName = 'PageName')]
+    [Parameter(ValueFromPipelineByPropertyName, ParameterSetName = 'PageID')]
     [AllowEmptyString()]
     [Alias('Text')]
     [string]$Content,
 
     # Alias for $Content, but in a way to support ValueFromPipelineByPropertyName
-    [Parameter(ValueFromPipelineByPropertyName)]
+    [Parameter(ValueFromPipelineByPropertyName, ParameterSetName = 'PageName')]
+    [Parameter(ValueFromPipelineByPropertyName, ParameterSetName = 'PageID')]
     [AllowEmptyString()]
     [string]$Wikitext,
 
@@ -6691,15 +6769,19 @@ function Set-MWPage
       Section based stuff
     #>
     [switch]$Section,
-    $SectionIndex = $null,
+    [uint32]$SectionIndex = $null,
     [string]$SectionTitle,
 
     <#
       Append / Prepend
     #>
+    [Parameter(ParameterSetName = 'PageName')]
+    [Parameter(ParameterSetName = 'PageID')]
     [Alias('AppendText')]
     [switch]$Append,
 
+    [Parameter(ParameterSetName = 'PageName')]
+    [Parameter(ParameterSetName = 'PageID')]
     [Alias('PrependText')]
     [switch]$Prepend,
 
@@ -6734,6 +6816,23 @@ function Set-MWPage
     [string[]]$Tags, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
+      Undo
+    #>
+    [Parameter(ParameterSetName = 'PageNameUndo')]
+    [Parameter(ParameterSetName = 'PageIDUndo')]
+    [switch]$Undo,
+    
+    [Parameter(Mandatory, ParameterSetName = 'PageNameUndo')]
+    [Parameter(Mandatory, ParameterSetName = 'PageIDUndo')]
+    [ValidateRange(0, [uint32]::MaxValue)]
+    [uint32]$RevisionID, # Undo this revision. Use 0 to undo all history and blank the page.
+
+    [Parameter(ParameterSetName = 'PageNameUndo')]
+    [Parameter(ParameterSetName = 'PageIDUndo')]
+    [ValidateRange(1, [uint32]::MaxValue)]
+    [uint32]$EndRevisionID, # Undo all revisions from -UndoRevision to this one. If not set, undo a single revision.
+
+    <#
       Debug
     #>
     [switch]$JSON
@@ -6764,12 +6863,9 @@ function Set-MWPage
     if ($Tags)
     { $JoinedTags = $Tags -join '|' }
 
-    $Page = $null
-
     $Body = [ordered]@{
       action    = 'edit'
       watchlist = $Watchlist.ToString().ToLower()
-      token     = (Get-MWCsrfToken)
     }
 
     $PageIdentity = ''
@@ -6823,13 +6919,24 @@ function Set-MWPage
 
     if (-not [string]::IsNullOrEmpty($JoinedTags))
     { $Body.tags = $JoinedTags }
+
+    if ($Undo)
+    {
+      $Body.undo = $RevisionID
+
+      if ($EndRevisionID -gt 0)
+      { $Body.undoafter = $EndRevisionID }
+    }
     
-    if ($Append)
-    { $Body.appendtext = $Content }
-    elseif ($Prepend)
-    { $Body.prependtext = $Content }
     else
-    { $Body.text = $Content }
+    {
+      if ($Append)
+      { $Body.appendtext = $Content }
+      elseif ($Prepend)
+      { $Body.prependtext = $Content }
+      else
+      { $Body.text = $Content }
+    }
 
     if ($BaseRevisionID)
     { $Body.baserevid = $BaseRevisionID }
@@ -6846,7 +6953,7 @@ function Set-MWPage
 
     Write-Verbose "Editing page $PageIdentity."
 
-    $Response = Invoke-MWApiRequest -Body $Body -Method POST -RateLimit $RateLimit.Seconds
+    $Response = Invoke-MWApiRequest -Body $Body -Method POST -Token CSRF -RateLimit $RateLimit.Seconds
 
     if ($JSON)
     { return $Response }
@@ -7127,6 +7234,253 @@ function Set-MWSection
     { $Parameters.Tags = $Tags }
 
     return Set-MWPage @Parameters
+  }
+
+  End { }
+}
+#endregion
+
+#region Undo-MWPageEdit
+<#
+.SYNOPSIS
+  Undo edits on a page.
+
+.DESCRIPTION
+  Undo the specified edits of a page or all edits made by the last user to edit the page.
+
+.PARAMETER Name
+  Name of the page to edit. Cannot be used alongside the -Name parameter.
+
+.PARAMETER ID
+  ID of the page to edit. Cannot be used alongside the -ID parameter.
+
+.PARAMETER Summary
+  A short summary to attach to the edit.
+
+.PARAMETER RevisionID
+  The revision ID to undo, or the revision ID to start undoing from if specifying a range to undo.
+
+.PARAMETER EndRevisionID
+  The revision ID to stop undoing at. Will only undo one edit if unused.
+
+.PARAMETER Rollback
+  Switch used to indicate that all edits of the specified user should be rolled back.
+
+.PARAMETER User
+  Username, ID (#12345), or IP address of the user whose edits are to be rolled back.
+
+.PARAMETER Watchlist
+  Defines whether to add the page to the user's watchlist or not.
+
+.PARAMETER Bot
+  Switch used to indicate the edit was performed by a bot.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a minor concern.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a major concern.
+
+.PARAMETER Tags
+  Tag the edit according to one or more tags available in Special:Tags
+
+.OUTPUTS
+  Returns a PSObject object containing the results of the edit.
+#>
+function Undo-MWPageEdit
+{
+  [CmdletBinding(DefaultParameterSetName = 'PageNameUndo')]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageNameUndo', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageNameRollback', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('Title', 'Identity', 'PageName')]
+    [string]$Name,
+
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageIDUndo', Position=0)]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageIDRollback', Position=0)]
+    [Alias('PageID')]
+    [uint32]$ID,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
+    [string]$Summary,
+
+    <#
+      Undo
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageNameUndo')]
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageIDUndo')]
+    [ValidateRange(0, [uint32]::MaxValue)]
+    [uint32]$RevisionID, # Undo this revision. Use 0 to undo all history and blank the page.
+
+    [Parameter(ParameterSetName = 'PageNameUndo')]
+    [Parameter(ParameterSetName = 'PageIDUndo')]
+    [ValidateRange(1, [uint32]::MaxValue)]
+    [uint32]$EndRevisionID, # Undo all revisions from -UndoRevision to this one. If not set, undo a single revision.
+
+    <#
+      Rollback
+    #>
+    [Parameter(ParameterSetName = 'PageNameRollback')]
+    [Parameter(ParameterSetName = 'PageIDRollback')]
+    [switch]$Rollback,
+
+    [Parameter(Mandatory, ParameterSetName = 'PageNameRollback')]
+    [Parameter(Mandatory, ParameterSetName = 'PageIDRollback')]
+    [string]$User,
+
+    <#
+      Watchlist
+    #>
+    [Watchlist]$Watchlist = [Watchlist]::Preferences,
+
+    <#
+      Tags applied to the edit
+    #>
+    [switch]$Bot,
+
+    [Parameter(ParameterSetName = 'PageNameUndo')]
+    [Parameter(ParameterSetName = 'PageIDUndo')]
+    [switch]$Minor,
+
+    [Parameter(ParameterSetName = 'PageNameUndo')]
+    [Parameter(ParameterSetName = 'PageIDUndo')]
+    [switch]$Major,
+
+    [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
+    [string[]]$Tags, # Tag the edit according to one or more tags available in Special:Tags
+
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    # Regular undo
+    if (-not $Rollback)
+    {
+      $Parameters  = @{
+        Undo       = $true
+        RevisionID = $RevisionID
+        Watchlist  = $Watchlist.ToString().ToLower()
+      }
+
+      if ($EndRevisionID -gt 0)
+      { $Parameters.EndRevisionID = $EndRevisionID }
+
+      if ($ID)
+      { $Parameters.ID = $ID }
+      else
+      { $Parameters.Name = $Name }
+
+      if ($Summary)
+      { $Parameters.Summary = $Summary }
+
+      if ($Bot)
+      { $Parameters.Bot = $true }
+
+      if ($Major)
+      { $Parameters.Major = $true }
+      elseif ($Minor)
+      { $Parameters.Minor = $true }
+
+      if ($Tags)
+      { $Parameters.Tags = $Tags }
+
+      return Set-MWPage @Parameters
+    }
+
+    # Rollback
+    else
+    {
+      $PSCustomObject = @()
+      $JoinedTags     = ''
+
+      if ($Tags)
+      { $JoinedTags = $Tags -join '|' }
+
+      $Body = [ordered]@{
+        action    = 'rollback'
+        user      = $User
+        watchlist = $Watchlist.ToString().ToLower()
+      }
+
+      $PageIdentity = ''
+
+      if ($ID)
+      {
+        $PageIdentity = $ID
+        $Body.pageid = $ID
+      }
+      else
+      {
+        $PageIdentity = $Name
+        $Body.title = $Name
+      }
+
+      if ($Summary)
+      { $Body.summary = $Summary }
+
+      if ($Bot)
+      { $Body.markbot = $true } # Omit if false
+
+      if (-not [string]::IsNullOrEmpty($JoinedTags))
+      { $Body.tags = $JoinedTags }
+
+      $RateLimit = if ($script:Cache.UserInfo.RateLimits.Rollback.User)
+                      {$script:Cache.UserInfo.RateLimits.Rollback.User}
+                 else {$script:Cache.UserInfo.RateLimits.Rollback.IP  }
+
+      Write-Verbose "Rolling back page $PageIdentity."
+
+      $Response = Invoke-MWApiRequest -Body $Body -Method POST -Token Rollback -RateLimit $RateLimit.Seconds
+
+      if ($JSON)
+      { return $Response }
+
+      if ($Page = $Response.rollback)
+      {
+        $ObjectProperties = [ordered]@{
+         #Namespace          = $Page.ns
+          ID                 = $Page.pageid
+          Name               = $Page.title
+          RevisionID         = $Page.revid
+          PreviousRevisionID = $Page.old_revid
+          RestoredRevisionID = $Page.last_revid
+          Summary            = $Page.summary
+        }
+
+        if ($null -ne $Page.new)
+        {
+          Write-Warning "'$($Page.title)' was created as a result of this edit."
+          $ObjectProperties.New = $true
+        }
+
+        if ($null -ne $Page.nochange)
+        {
+          Write-Warning "No change was made to '$($Page.title)'."
+          $ObjectProperties.NoChange = $true
+        }
+
+        $PSCustomObject = New-Object PSObject -Property $ObjectProperties
+      }
+
+      return $PSCustomObject
+    }
   }
 
   End { }
