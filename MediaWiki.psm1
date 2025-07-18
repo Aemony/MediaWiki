@@ -1153,9 +1153,6 @@ function Write-MWWarningResultSize
 .PARAMETER Content
   Contents to add to the page.
 
-.PARAMETER Wikitext
-  Alias for the -Content parameter.
-
 .PARAMETER NoNewline
   Switch used to indicate that no newline should be created before/after the new content.
 
@@ -1209,15 +1206,10 @@ function Add-MWPage
     [AllowEmptyString()]
     [string]$Summary,
 
-    [Parameter(ValueFromPipelineByPropertyName)]
+    [Parameter()]
     [AllowEmptyString()]
-    [Alias('Text')]
+    [Alias('Text', 'Wikitext')]
     [string]$Content,
-
-    # Alias for $Content, but in a way to support ValueFromPipelineByPropertyName
-    [Parameter(ValueFromPipelineByPropertyName)]
-    [AllowEmptyString()]
-    [string]$Wikitext,
 
     [switch]$NoNewline,
 
@@ -1267,16 +1259,7 @@ function Add-MWPage
       return $null
     }
 
-    if ($Content -and $Wikitext)
-    {
-      Write-Warning "-Content and -Wikitext cannot be used at the same time!"
-      return $null
-    }
-
-    if ($Wikitext)
-    { $Content = $Wikitext }
-
-    if (-not $NoNewline)
+    if (-not $NoNewline -and -not [string]::IsNullOrWhiteSpace($Content))
     {
       if ($Prepend -and $Content -notmatch "\n$")
       { $Content = "$Content`n" }
@@ -1354,9 +1337,6 @@ function Add-MWPage
 .PARAMETER Content
   Content to append to the specified section.
 
-.PARAMETER Wikitext
-  Alias for the -Content parameter.
-
 .PARAMETER NoNewline
   Switch used to indicate that no newline should be created before/after the new content.
 
@@ -1421,15 +1401,10 @@ function Add-MWSection
     [AllowEmptyString()]
     [string]$Summary,
 
-    [Parameter(ValueFromPipelineByPropertyName)]
+    [Parameter()]
     [AllowEmptyString()]
-    [Alias('Text')]
+    [Alias('Text', 'Wikitext')]
     [string]$Content,
-
-    # Alias for $Content, but in a way to support ValueFromPipelineByPropertyName
-    [Parameter(ValueFromPipelineByPropertyName)]
-    [AllowEmptyString()]
-    [string]$Wikitext,
 
     [switch]$NoNewline,
 
@@ -1494,19 +1469,10 @@ function Add-MWSection
       return $null
     }
 
-    if ($Content -and $Wikitext)
-    {
-      Write-Warning "-Content and -Wikitext cannot be used at the same time!"
-      return $null
-    }
-
     if ($FromTitle)
     { $Name = $FromTitle }
 
-    if ($Wikitext)
-    { $Content = $Wikitext }
-
-    if (-not $NoNewline)
+    if (-not $NoNewline -and -not [string]::IsNullOrWhiteSpace($Content))
     {
       if ($Prepend -and $Content -notmatch "\n$")
       { $Content = "$Content`n" }
