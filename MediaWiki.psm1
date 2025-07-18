@@ -925,7 +925,7 @@ function Test-MWChangeTag
     An object to perform the validation on.
   .EXAMPLE
     [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
-    [string[]]$Tag
+    [string[]]$Tags
 #>
   [CmdletBinding()]
   param (
@@ -1180,7 +1180,7 @@ function Write-MWWarningResultSize
 .PARAMETER Minor
   Switch used to indicate the edit is of a major concern.
 
-.PARAMETER Tag
+.PARAMETER Tags
   Tag the edit according to one or more tags available in Special:Tags
 
 .OUTPUTS
@@ -1241,7 +1241,7 @@ function Add-MWPage
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+    [string[]]$Tags, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
       Debug
@@ -1304,8 +1304,8 @@ function Add-MWPage
     if ($Major)
     { $Parameters.Major = $Major }
 
-    if ($Tag)
-    { $Parameters.Tag = $Tag }
+    if ($Tags)
+    { $Parameters.Tags = $Tags }
 
     return Set-MWPage @Parameters
   }
@@ -1370,7 +1370,7 @@ function Add-MWPage
 .PARAMETER Minor
   Switch used to indicate the edit is of a major concern.
 
-.PARAMETER Tag
+.PARAMETER Tags
   Tag the edit according to one or more tags available in Special:Tags
 
 .OUTPUTS
@@ -1451,7 +1451,7 @@ function Add-MWSection
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+    [string[]]$Tags, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
       Debug
@@ -1538,8 +1538,8 @@ function Add-MWSection
     if ($Major)
     { $Parameters.Major = $Major }
 
-    if ($Tag)
-    { $Parameters.Tag = $Tag }
+    if ($Tags)
+    { $Parameters.Tags = $Tags }
 
     return Set-MWPage @Parameters
   }
@@ -1589,7 +1589,7 @@ function Add-MWSection
 .PARAMETER Minor
   Switch used to indicate the edit is of a major concern.
 
-.PARAMETER Tag
+.PARAMETER Tags
   Tag the edit according to one or more tags available in Special:Tags
 
 .OUTPUTS
@@ -1639,7 +1639,7 @@ function Clear-MWPage
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+    [string[]]$Tags, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
       Debug
@@ -1704,8 +1704,8 @@ function Clear-MWPage
     if ($Major)
     { $Parameters.Major = $Major }
 
-    if ($Tag)
-    { $Parameters.Tag = $Tag }
+    if ($Tags)
+    { $Parameters.Tags = $Tags }
 
     return Set-MWPage @Parameters
   }
@@ -1761,7 +1761,7 @@ function Clear-MWPage
 .PARAMETER Minor
   Switch used to indicate the edit is of a major concern.
 
-.PARAMETER Tag
+.PARAMETER Tags
   Tag the edit according to one or more tags available in Special:Tags
 
 .OUTPUTS
@@ -1823,7 +1823,7 @@ function Clear-MWSection
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+    [string[]]$Tags, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
       Debug
@@ -1916,8 +1916,8 @@ function Clear-MWSection
     if ($Major)
     { $Parameters.Major = $Major }
 
-    if ($Tag)
-    { $Parameters.Tag = $Tag }
+    if ($Tags)
+    { $Parameters.Tags = $Tags }
 
     return Set-MWPage @Parameters
   }
@@ -5629,7 +5629,7 @@ function Move-MWPage
 .PARAMETER Minor
   Switch used to indicate the edit is of a major concern.
 
-.PARAMETER Tag
+.PARAMETER Tags
   Tag the edit according to one or more tags available in Special:Tags
 
 .OUTPUTS
@@ -5677,7 +5677,7 @@ function New-MWPage
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+    [string[]]$Tags, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
       Debug
@@ -5729,8 +5729,8 @@ function New-MWPage
     if ($Major)
     { $Parameters.Major = $Major }
 
-    if ($Tag)
-    { $Parameters.Tag = $Tag }
+    if ($Tags)
+    { $Parameters.Tags = $Tags }
 
     return Set-MWPage @Parameters
   }
@@ -5789,7 +5789,7 @@ function New-MWPage
 .PARAMETER Minor
   Switch used to indicate the edit is of a major concern.
 
-.PARAMETER Tag
+.PARAMETER Tags
   Tag the edit according to one or more tags available in Special:Tags
 
 .OUTPUTS
@@ -5856,7 +5856,7 @@ function New-MWSection
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+    [string[]]$Tags, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
       Debug
@@ -5938,8 +5938,8 @@ function New-MWSection
     if ($Major)
     { $Parameters.Major = $Major }
 
-    if ($Tag)
-    { $Parameters.Tag = $Tag }
+    if ($Tags)
+    { $Parameters.Tags = $Tags }
 
     return Set-MWPage @Parameters
   }
@@ -6084,7 +6084,7 @@ function Remove-MWPage
 .PARAMETER Minor
   Switch used to indicate the edit is of a major concern.
 
-.PARAMETER Tag
+.PARAMETER Tags
   Tag the edit according to one or more tags available in Special:Tags
 
 .OUTPUTS
@@ -6146,7 +6146,7 @@ function Remove-MWSection
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+    [string[]]$Tags, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
       Debug
@@ -6217,8 +6217,8 @@ function Remove-MWSection
     if ($Major)
     { $Parameters.Major = $Major }
 
-    if ($Tag)
-    { $Parameters.Tag = $Tag }
+    if ($Tags)
+    { $Parameters.Tags = $Tags }
 
     return Set-MWPage @Parameters
   }
@@ -6277,7 +6277,7 @@ function Remove-MWSection
 .PARAMETER Minor
   Switch used to indicate the edit is of a major concern.
 
-.PARAMETER Tag
+.PARAMETER Tags
   Tag the edit according to one or more tags available in Special:Tags
 
 .OUTPUTS
@@ -6343,7 +6343,7 @@ function Rename-MWSection
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+    [string[]]$Tags, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
       Debug
@@ -6438,8 +6438,8 @@ function Rename-MWSection
     if ($Major)
     { $Parameters.Major = $Major }
 
-    if ($Tag)
-    { $Parameters.Tag = $Tag }
+    if ($Tags)
+    { $Parameters.Tags = $Tags }
 
     return Set-MWPage @Parameters
   }
@@ -6652,7 +6652,7 @@ function Search-MWPage
 .PARAMETER Minor
   Switch used to indicate the edit is of a major concern.
 
-.PARAMETER Tag
+.PARAMETER Tags
   Tag the edit according to one or more tags available in Special:Tags
 
 .OUTPUTS
@@ -6732,7 +6732,7 @@ function Set-MWPage
     [switch]$Minor,
     [switch]$Major,
     [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
-    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+    [string[]]$Tags, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
       Debug
@@ -6762,8 +6762,8 @@ function Set-MWPage
     $PSCustomObject = @()
     $JoinedTags     = ''
 
-    if ($Tag)
-    { $JoinedTags = $Tag -join '|' }
+    if ($Tags)
+    { $JoinedTags = $Tags -join '|' }
 
     $Page = $null
 
@@ -6946,7 +6946,7 @@ function Set-MWPage
 .PARAMETER Minor
   Switch used to indicate the edit is of a major concern.
 
-.PARAMETER Tag
+.PARAMETER Tags
   Tag the edit according to one or more tags available in Special:Tags
 
 .OUTPUTS
@@ -7018,7 +7018,7 @@ function Set-MWSection
     [switch]$Bot,
     [switch]$Minor,
     [switch]$Major,
-    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+    [string[]]$Tags, # Tag the edit according to one or more tags available in Special:Tags
 
     <#
       Debug
@@ -7124,8 +7124,8 @@ function Set-MWSection
     if ($Major)
     { $Parameters.Major = $Major }
 
-    if ($Tag)
-    { $Parameters.Tag = $Tag }
+    if ($Tags)
+    { $Parameters.Tags = $Tags }
 
     return Set-MWPage @Parameters
   }
