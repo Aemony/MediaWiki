@@ -4945,7 +4945,7 @@ function Get-MWToken
       $Body = [ordered]@{
         action = 'query'
         meta   = 'tokens'
-        type   = $Type.ToString().ToLower()
+        type   = $TypeAsString.ToLower()
       }
 
       $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -NoAssert
@@ -7265,9 +7265,11 @@ function Set-MWSection
 
 .PARAMETER Rollback
   Switch used to indicate that all edits of the specified user should be rolled back.
+  Must be used together with -User.
 
 .PARAMETER User
   Username, ID (#12345), or IP address of the user whose edits are to be rolled back.
+  Must be used together with -Rollback.
 
 .PARAMETER Watchlist
   Defines whether to add the page to the user's watchlist or not.
