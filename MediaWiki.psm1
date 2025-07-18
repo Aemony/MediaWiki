@@ -4543,9 +4543,6 @@ function Get-MWPage
       return $null
     }
 
-    if (-not $ParsedText -and -not $Wikitext)
-    { $Wikitext = $true }
-
     $Body = [ordered]@{
       action = 'parse'
     }
@@ -4811,9 +4808,6 @@ function Get-MWSection
 
     if ($FromTitle)
     { $Name = $FromTitle }
-
-    if (-not $ParsedText -and -not $Wikitext)
-    { $Wikitext = $true }
 
     $Parameters       = @{
       SectionIndex    = $Index
