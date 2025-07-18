@@ -124,16 +124,16 @@ $Pages | Update-MWPage -Force
 * `Get-MWBackLink` - List all pages which links to a page.
   * Interface for [list=backlinks](https://www.mediawiki.org/wiki/API:Backlinks).
 * `Find-MWRedirect` - Variant of `Find-MWPage` to list all redirect pages.
-* `Find-MWOrphanedRedirect` - Helper to generate a list of all orphaned redirects. Takes a long time with ~50k pages, so be warned. :) 
+* `Find-MWRedirectOrphan` - Helper to generate a list of all orphaned redirects. Takes a long time with ~50k pages, so be warned. :)
 
 **Categories**
 * `Get-MWCategoryMember` - List all pages in a category.
   * Interface for [list=categorymembers](https://www.mediawiki.org/wiki/API:Categorymembers).
 
-**Templates** 
+**Templates**
 * `Get-MWEmbeddedIn` - List all other pages a page is embedded in.
   * Interface for [list=embeddedin](https://www.mediawiki.org/wiki/API:Embeddedin).
-* `Get-MWTranscludedIn` - Alias for `Get-MWEmbeddedIn`. 
+* `Get-MWTranscludedIn` - Alias for `Get-MWEmbeddedIn`.
 
 **Namespaces**
 * `Get-MWNamespace` - Retrieves all registered namespaces on the site.
@@ -171,7 +171,7 @@ $Pages | Update-MWPage -Force
   * Implemented as a variant of `Get-MWCurrentUser`.
 
 **Watchlist**
-* `Watch-MWPage` - Not implemented. Will probably end up watching or unwatching a page maybe? 
+* `Watch-MWPage` - Not implemented. Will probably end up watching or unwatching a page maybe?
 
 **Extensions**
 * `Get-MWCargoQuery` - Performs a query against the Cargo backend, provided [Extension:Cargo](https://www.mediawiki.org/wiki/Extension:Cargo) is installed.
