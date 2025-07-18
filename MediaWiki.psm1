@@ -2110,7 +2110,7 @@ function Connect-MWSession
           lgtoken    = $Response.query.tokens.logintoken
         }
 
-        $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -NoAssert
+        $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -NoAssert -WebSession $global:MWSession
 
         if ($Response.login.result -ne 'Success')
         { Write-Warning -Message "[$($Response.login.result)] $($Response.login.reason)" }
