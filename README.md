@@ -96,6 +96,8 @@ $Pages | Update-MWPage -Force
 * `Update-MWPage` - Purges the cache for a page. Use `-Force` for a deeper purge by performing an empty edit of the page.
   * An empty edit (`-Force`) can at times trigger backend refreshes (e.g. extensions such as Cargo) that otherwise would not be affected by a normal cache purge.
   * Interface for [action=purge](https://www.mediawiki.org/wiki/API:Purge). Imlemented as a variant of `Set-MWPage` when used with `-Force`.
+* `Undo-MWPageEdit` - Undo specific edits of a page. Use `-Rollback` to undo all edits made by the last user to edit the page.
+  * Imlemented as a variant of `Set-MWPage`. Interface for [action=rollback](https://www.mediawiki.org/wiki/API:Rollback) when used with `-Rollback`.
 
 **Sections**
 * `Add-MWSection` - Add content to a section.
