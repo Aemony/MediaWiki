@@ -36,10 +36,37 @@ changes throughout its code as I learn, rethink, and redesign components here an
 
 4. Once having established a connection to an API endpoint, use one of these commands to interface with it:
 
-## Cheat sheet
-If actively working on the module and its code, I find the below one-liner to be quite helpful to reload the whole thing quickly:
+## Examples
 
-* `Disconnect-MWSession; Remove-Module MediaWiki; Import-Module .\MediaWiki; Connect-MWSession -Persistent -Guest`
+Retrieve the wikitext of a page:
+```powershell
+Get-MWPage 'NieR: Automata' -Wikitext
+```
+
+Add new content to the end of a specific section:
+```powershell
+(Get-MWPage 'NieR: Automata').Sections | Where Line -eq 'Inventory Editor' | Add-MWSection -Content "In Summer of 2038 an updated version was released with bug fixes and QoL improvements." -Summary "Added information pertaining to the 2038 update."
+```
+
+Forces a deeper cache purge of a page by performing an empty edit on it:
+```powershell
+Get-MWPage 'NieR: Automata' | Update-MWPage -Force
+```
+
+**PCGamingWiki specific:**
+
+*For more real-world examples, visit the [AemonyBot](https://github.com/Aemony/AemonyBot) repository.*
+
+Performs a Cargo query to retrieve all pages using the SecuROM DRM:
+```powershell
+Get-MWCargoQuery -Table Availability -Where "Uses_DRM HOLDS LIKE 'SecuROM%'" -Fields 'Uses_DRM' -ResultSize Unlimited
+```
+
+Performs a deep cache purge on all SecuROM pages:
+```powershell
+$Pages = Get-MWCargoQuery -Table Availability -Where "Uses_DRM HOLDS LIKE 'SecuROM%'" -Fields 'Uses_DRM' -ResultSize Unlimited
+$Pages | Update-MWPage -Force
+```
 
 ## Cmdlets
 **Pages**
@@ -153,37 +180,10 @@ If actively working on the module and its code, I find the below one-liner to be
 * `Invoke-MWApiContinueRequest` - Useful helper that automatically handles continuing API requests when there are more results available.
 * `Invoke-MWApiRequest` - Handles the core aspects of performing an API request.
 
-## Examples
+## Cheat sheet
+If actively working on the module and its code, I find the below one-liner to be quite helpful to reload the whole thing quickly:
 
-Retrieve the wikitext of a page:
-```powershell
-Get-MWPage 'NieR: Automata' -Wikitext
-```
-
-Add new content to the end of a specific section:
-```powershell
-(Get-MWPage 'NieR: Automata').Sections | Where Line -eq 'Inventory Editor' | Add-MWSection -Content "In Summer of 2038 an updated version was released with bug fixes and QoL improvements." -Summary "Added information pertaining to the 2038 update."
-```
-
-Forces a deeper cache purge of a page by performing an empty edit on it:
-```powershell
-Get-MWPage 'NieR: Automata' | Update-MWPage -Force
-```
-
-**PCGamingWiki specific:**
-
-*For more real-world examples, visit the [AemonyBot](https://github.com/Aemony/AemonyBot) repository.*
-
-Performs a Cargo query to retrieve all pages using the SecuROM DRM:
-```powershell
-Get-MWCargoQuery -Table Availability -Where "Uses_DRM HOLDS LIKE 'SecuROM%'" -Fields 'Uses_DRM' -ResultSize Unlimited
-```
-
-Performs a deep cache purge on all SecuROM pages:
-```powershell
-$Pages = Get-MWCargoQuery -Table Availability -Where "Uses_DRM HOLDS LIKE 'SecuROM%'" -Fields 'Uses_DRM' -ResultSize Unlimited
-$Pages | Update-MWPage -Force
-```
+* `Disconnect-MWSession; Remove-Module MediaWiki; Import-Module .\MediaWiki; Connect-MWSession -Persistent -Guest`
 
 ## Possible future To-Do's
 Random personal thoughts and ideas that have come up...
