@@ -4365,11 +4365,11 @@ function Get-MWNamespace
         { $LocalCopy = $script:Cache.Namespace | Where-Object ID -ge 0 }
 
             if ($PSBoundParameters.ContainsKey('NamespaceName'))
-        { return ($LocalCopy | Where-Object Name -EQ $NamespaceName | Copy-Object) }
+        { return ($LocalCopy | Where-Object { $_.Name -eq $NamespaceName -or $_.Aliases -eq $NamespaceName } | Copy-Object) }
         elseif ($PSBoundParameters.ContainsKey('NamespaceID'))
-        { return ($LocalCopy | Where-Object ID   -EQ $NamespaceID   | Copy-Object) }
+        { return ($LocalCopy | Where-Object { $_.ID   -eq $NamespaceID } | Copy-Object) }
         else
-        { return ($LocalCopy                                        | Copy-Object) }
+        { return ($LocalCopy | Copy-Object) }
       }
 
       return $null
@@ -4882,6 +4882,9 @@ function Get-MWSiteInfo
     if ($Properties -contains '*')
     { $Properties = @('dbrepllag', 'defaultoptions', 'extensions', 'extensiontags', 'fileextensions', 'functionhooks', 'general', 'interwikimap', 'languages', 'languagevariants', 'libraries', 'magicwords', 'namespacealiases', 'namespaces', 'protocols', 'restrictions', 'rightsinfo', 'showhooks', 'skins', 'specialpagealiases', 'statistics', 'uploaddialog', 'usergroups', 'variables') }
 
+    if ($Properties -contains 'namespaces' -and $Properties -notcontains 'namespacealiases')
+    { $Properties += 'namespacealiases' }
+
     $Body = [ordered]@{
       action = 'query'
       meta   = 'siteinfo'
@@ -4912,6 +4915,13 @@ function Get-MWSiteInfo
         $Namespace      = Rename-PropertyName $Namespace -PropertyName 'Content' -NewPropertyName 'IsContentNamespace'
         $ArrNamespaces += $Namespace
       }
+
+      # Move namespace aliases into the Namespace array
+      ForEach ($Namespace in $ArrNamespaces)
+      { $Namespace | Add-Member -MemberType NoteProperty -Name 'Aliases' -Value (($PSCustomObject.NamespaceAliases | Where-Object { $_.ID -eq $Namespace.ID }).Alias) }
+      $PSCustomObject.PSObject.Properties.Remove('NamespaceAliases')
+
+      # Move it into the object we intend to return
       $PSCustomObject.Namespaces = $ArrNamespaces
 
       # Clone the values for internal use
