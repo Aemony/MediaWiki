@@ -5,7 +5,7 @@ performing [various maintenance tasks](https://github.com/Aemony/AemonyBot) for 
 
 A major focus of the module have been to ensure pipeline compatibility across the cmdlets.
 
--
+...
 
 While other more powerful alternatives exists (e.g. pymediawiki), I prefer working with and use
 PowerShell as I like that a well-defined PowerShell module exposes APIs and datasets to regular
