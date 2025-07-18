@@ -6385,7 +6385,7 @@ function Rename-MWSection
 
     # Header will always be the first line of the section content
     $CurrentTitle = (($SectionContent.Wikitext) -split '\n')[0]
-    $SectionTitle = $CurrentTitle -replace '(={1,5})[^=]+(={1,5})', "`$1$NewTitle`$2"
+    $SectionTitle = $CurrentTitle -replace '(^={1,6})[^=]+(={1,6}\s*?$)', "`$1$NewTitle`$2"
 
     $NewContent = $SectionContent.Wikitext.Replace($CurrentTitle, $SectionTitle)
 
