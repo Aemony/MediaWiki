@@ -2441,12 +2441,45 @@ function Disconnect-MWSession
 #region Find-MWImage
 function Find-MWImage
 {
-  [CmdletBinding()]
+  [CmdletBinding(DefaultParameterSetName='BetweenNames')]
   param
   (
-    [ValidateSet('Name', 'Timestamp')]
-    [string]$SortProperty = 'Name',
+    <#
+      Search by name
+    #>
+    [Parameter(ParameterSetName = 'BetweenNames', Position=0)]
+    [Alias('ImageName', 'Prefix')]
+    [string]$Name,
 
+    [Parameter(ParameterSetName = 'BetweenNames')]
+    [string]$From,
+
+    [Parameter(ParameterSetName = 'BetweenNames')]
+    [string]$To,
+
+    <#
+      Search by timestamp
+    #>
+    [Parameter(ParameterSetName = 'BetweenTimestamp')]
+    [Parameter(ParameterSetName = 'BetweenTimestampUser')]
+    [Parameter(ParameterSetName = 'BetweenTimestampFilter')]
+    [string]$Start,
+
+    [Parameter(ParameterSetName = 'BetweenTimestamp')]
+    [Parameter(ParameterSetName = 'BetweenTimestampUser')]
+    [Parameter(ParameterSetName = 'BetweenTimestampFilter')]
+    [string]$End,
+
+    [Parameter(Mandatory, ParameterSetName = 'BetweenTimestampUser')]
+    [string]$User,
+
+    [Parameter(Mandatory, ParameterSetName = 'BetweenTimestampFilter')]
+    [ValidateSet('All', 'Bots', 'NoBots')]
+    [string]$Filter,
+
+    <#
+      Search direction
+    #>
     [Alias('Newer')]
     [switch]$Ascending, # (default)
     [Alias('Older')]
@@ -2475,131 +2508,6 @@ function Find-MWImage
     [switch]$JSON
   )
 
-  dynamicparam
-  {
-    $paramDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
-
-    if ($SortProperty -eq 'Name')
-    {
-      # [-Name [string]]
-      $NameParameterAttribute = [System.Management.Automation.ParameterAttribute]@{
-          ParameterSetName    = "BetweenNames"
-          Mandatory           = $false
-          Position            = 0
-      }
-      $NameAliasAttribute     = [System.Management.Automation.AliasAttribute]::new('ImageName', 'Prefix')
-      $NameCollection         = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
-      $NameCollection.Add($NameParameterAttribute)
-      $NameCollection.Add($NameAliasAttribute)
-      $NameDynamic            = [System.Management.Automation.RuntimeDefinedParameter]::new(
-                           'Name', [string], $NameCollection
-      )
-      $paramDictionary.Add('Name', $NameDynamic)
-
-      # [-From [string]]
-      $FromParameterAttribute = [System.Management.Automation.ParameterAttribute]@{
-          ParameterSetName    = "BetweenNames"
-          Mandatory           = $false
-      }
-      $FromCollection         = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
-      $FromCollection.Add($FromParameterAttribute)
-      $FromDynamic            = [System.Management.Automation.RuntimeDefinedParameter]::new(
-                           'From', [string], $FromCollection
-      )
-      $paramDictionary.Add('From', $FromDynamic)
-
-      # [-To [string]]
-      $ToParameterAttribute   = [System.Management.Automation.ParameterAttribute]@{
-          ParameterSetName    = "BetweenNames"
-          Mandatory           = $false
-      }
-      $ToCollection           = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
-      $ToCollection.Add($ToParameterAttribute)
-      $ToDynamic              = [System.Management.Automation.RuntimeDefinedParameter]::new(
-                           'To', [string], $ToCollection
-      )
-      $paramDictionary.Add('To', $ToDynamic)
-    }
-
-    elseif ($SortProperty -eq 'Timestamp')
-    {
-      # [-Start [string]]
-      $StartParameterAttribute       = [System.Management.Automation.ParameterAttribute]@{
-          ParameterSetName           = "BetweenTimestamp"
-          Mandatory                  = $false
-      }
-      $StartParameterAttributeUser   = [System.Management.Automation.ParameterAttribute]@{
-          ParameterSetName           = "BetweenTimestampUser"
-          Mandatory                  = $false
-      }
-      $StartParameterAttributeFilter = [System.Management.Automation.ParameterAttribute]@{
-          ParameterSetName           = "BetweenTimestampFilter"
-          Mandatory                  = $false
-      }
-      $StartCollection               = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
-      $StartCollection.Add($StartParameterAttribute)
-      $StartCollection.Add($StartParameterAttributeUser)
-      $StartCollection.Add($StartParameterAttributeFilter)
-      $StartDynamic                  = [System.Management.Automation.RuntimeDefinedParameter]::new(
-                           'Start', [string], $StartCollection
-      )
-      $paramDictionary.Add('Start', $StartDynamic)
-
-
-      # [-End [string]]
-      $EndParameterAttribute        = [System.Management.Automation.ParameterAttribute]@{
-          ParameterSetName           = "BetweenTimestamp"
-          Mandatory                  = $false
-      }
-      $EndParameterAttributeUser     = [System.Management.Automation.ParameterAttribute]@{
-          ParameterSetName           = "BetweenTimestampUser"
-          Mandatory                  = $false
-      }
-      $EndParameterAttributeFilter   = [System.Management.Automation.ParameterAttribute]@{
-          ParameterSetName           = "BetweenTimestampFilter"
-          Mandatory                  = $false
-      }
-      $EndCollection                 = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
-      $EndCollection.Add($EndParameterAttribute)
-      $EndCollection.Add($EndParameterAttributeUser)
-      $EndCollection.Add($EndParameterAttributeFilter)
-      $EndDynamic                    = [System.Management.Automation.RuntimeDefinedParameter]::new(
-                           'End', [string], $EndCollection
-      )
-      $paramDictionary.Add('End', $EndDynamic)
-
-      # [-User [string]]
-      $UserParameterAttribute        = [System.Management.Automation.ParameterAttribute]@{
-          ParameterSetName           = "BetweenTimestampUser"
-          Mandatory                  = $true
-      }
-      $UserCollection                = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
-      $UserCollection.Add($UserParameterAttribute)
-      $UserDynamic                   = [System.Management.Automation.RuntimeDefinedParameter]::new(
-                           'User', [string], $UserCollection
-      )
-      $paramDictionary.Add('User', $UserDynamic)
-
-      # [-Filter [string]]
-      $FilterParameterAttribute      = [System.Management.Automation.ParameterAttribute]@{
-          ParameterSetName           = "BetweenTimestampFilter"
-          Mandatory                  = $true
-      }
-      $FilterValidateSetAttribute    = [System.Management.Automation.ValidateSetAttribute]::new(
-                           'All', 'Bots', 'NoBots'
-      )
-      $FilterCollection              = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
-      $FilterCollection.Add($FilterParameterAttribute)
-      $FilterCollection.Add($FilterValidateSetAttribute)
-      $FilterDynamic                 = [System.Management.Automation.RuntimeDefinedParameter]::new(
-                           'Filter', [string], $FilterCollection
-      )
-      $paramDictionary.Add('Filter', $FilterDynamic)
-    }
-
-    return $paramDictionary
-  }
-
   Begin
   {
     $ArrJSON = @()
@@ -2616,12 +2524,17 @@ function Find-MWImage
     if ($ResultSize -eq 'Unlimited')
     { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
 
+    $SortProperty = 'name'
+
+    if ($PSCmdlet.ParameterSetName -like "BetweenTimestamp*")
+    { $SortProperty = 'timestamp' }
+
     # Preparation
     $Body = [ordered]@{
       action        = 'query'
       list          = 'allimages'
       ailimit       = 'max'
-      aisort        = $SortProperty.ToLower()
+      aisort        = $SortProperty
     }
 
     if (-not [string]::IsNullOrEmpty($Properties))
@@ -2646,42 +2559,48 @@ function Find-MWImage
     # Need to bind dynamic parameters to local variables apparently?
 
     # BetweenNames
-    $Name   = $PSBoundParameters['Name']
-    $From   = $PSBoundParameters['From']
-    $To     = $PSBoundParameters['To']
-    if ($PSBoundParameters.ContainsKey('Name'))
-    { $Body.aiprefix = $Name }
-    if ($PSBoundParameters.ContainsKey('From'))
-    { $Body.aifrom   = $From }
-    if ($PSBoundParameters.ContainsKey('To'))
-    { $Body.aito     = $To }
+    if ($PSCmdlet.ParameterSetName -eq 'BetweenNames')
+    {
+      if (-not [string]::IsNullOrWhiteSpace($Name))
+      { $Body.aiprefix = $Name }
+
+      if (-not [string]::IsNullOrWhiteSpace($From))
+      { $Body.aifrom   = $From }
+
+      if (-not [string]::IsNullOrWhiteSpace($To))
+      { $Body.aito     = $To }
+    }
 
     # BetweenTimestamp*
-    $Start  = $PSBoundParameters['Start']
-    $End    = $PSBoundParameters['End']
-    if ($PSBoundParameters.ContainsKey('Start'))
+    if ($PSCmdlet.ParameterSetName -like "BetweenTimestamp*")
     {
-      if ($Start -eq 'now')
-      { $Start = (Get-Date) } else {
-        $Start = [DateTime]$Start
+      if (-not [string]::IsNullOrWhiteSpace($Start))
+      {
+        if ($Start -eq 'now')
+        { $Start = (Get-Date) }
+        else
+        { $Start = [DateTime]$Start }
+        
+        $Body.aistart = (Get-Date ($Start).ToUniversalTime() -UFormat '+%Y-%m-%dT%H:%M:%SZ')
       }
-      $Body.aistart = (Get-Date ($Start).ToUniversalTime() -UFormat '+%Y-%m-%dT%H:%M:%SZ')
-    }
-    if ($PSBoundParameters.ContainsKey('End'))
-    {
-      if ($End -eq 'now')
-      { $End = (Get-Date) } else {
-        $End = [DateTime]$End
+
+      if (-not [string]::IsNullOrWhiteSpace($End))
+      {
+        if ($End -eq 'now')
+        { $End = (Get-Date) }
+        else
+        { $End = [DateTime]$End }
+
+        $Body.aiend = (Get-Date ($End).ToUniversalTime() -UFormat '+%Y-%m-%dT%H:%M:%SZ')
       }
-      $Body.aiend = (Get-Date ($End).ToUniversalTime() -UFormat '+%Y-%m-%dT%H:%M:%SZ')
+
+      # BetweenTimestampUser
+      if (-not [string]::IsNullOrWhiteSpace($User))
+      { $Body.aiuser       = $User }
+      # BetweenTimestampFilter
+      if (-not [string]::IsNullOrWhiteSpace($Filter))
+      { $Body.aifilterbots = $Filter.ToLower() }
     }
-    # BetweenTimestampUser / BetweenTimestampFilter
-    $User   = $PSBoundParameters['User']
-    $Filter = $PSBoundParameters['Filter']
-    if ($PSBoundParameters.ContainsKey('User'))
-    { $Body.aiuser       = $User }
-    if ($PSBoundParameters.ContainsKey('Filter'))
-    { $Body.aifilterbots = $Filter.ToLower() }
 
     $ArrJSON += Invoke-MWApiContinueRequest -Body $Body -Method GET -ResultSize $ResultSize -Node1 'allimages'
   }
@@ -2813,12 +2732,12 @@ function Find-MWPage
     [switch]$RedirectOnly,
     [switch]$NoRedirect,
     
-    [Parameter(ParameterSetName='ByProtection', Mandatory)]
+    [Parameter(Mandatory, ParameterSetName='ByProtection')]
     [ValidateScript({ Test-MWProtectionType -InputObject $PSItem })]
     [string[]]$ProtectionType,
 
     # ()
-    [Parameter(ParameterSetName='ByProtection', Mandatory)]
+    [Parameter(Mandatory, ParameterSetName='ByProtection')]
     [ValidateScript({ Test-MWProtectionLevel -InputObject $PSItem })]
     [string[]]$ProtectionLevel,
     
@@ -3664,7 +3583,17 @@ function Get-MWDuplicateFile
     }
 
     if ($Name)
-    { $Body.titles = $Name -join '|' }
+    {
+      $FixedNames = @()
+      ForEach ($FileName in $Name)
+      {
+        if ((Get-MWNamespace -PageName $FileName).Name -ne 'File')
+        { $FixedNames += "File:$FileName" }
+        else
+        { $FixedNames += $FileName }
+      }
+      $Body.titles = $FixedNames -join '|'
+    }
 
     if ($ID)
     { $Body.pageids = $ID -join '|' }
@@ -3852,7 +3781,17 @@ function Get-MWImageInfo
     if ($ID)
     { $Body.pageids = $ID -join '|' }
     else
-    { $Body.titles = $Name -join '|' }
+    {
+      $FixedNames = @()
+      ForEach ($FileName in $Name)
+      {
+        if ((Get-MWNamespace -PageName $FileName).Name -ne 'File')
+        { $FixedNames += "File:$FileName" }
+        else
+        { $FixedNames += $FileName }
+      }
+      $Body.titles = $FixedNames -join '|'
+    }
 
     $Body.iilimit = $ResultSize
 
@@ -3940,7 +3879,17 @@ function Get-MWImageUsage
     if ($ID)
     { $Body.iupageid = $ID -join '|' }
     else
-    { $Body.iutitle = $Name -join '|' }
+    {
+      $FixedNames = @()
+      ForEach ($FileName in $Name)
+      {
+        if ((Get-MWNamespace -PageName $FileName).Name -ne 'File')
+        { $FixedNames += "File:$FileName" }
+        else
+        { $FixedNames += $FileName }
+      }
+      $Body.iutitle = $FixedNames -join '|'
+    }
 
     $_Namespace = ConvertTo-MWNamespaceID $Namespace
 
