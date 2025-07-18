@@ -5828,6 +5828,216 @@ function Remove-MWPage
 }
 #endregion
 
+#region Rename-MWSection
+<#
+.SYNOPSIS
+  Rename the specified section on the given page to a new title.
+
+.DESCRIPTION
+  The cmdlet is a front for Set-MWPage that makes it easier to rename a specific section.
+
+.PARAMETER Name
+  Name of the page to edit. Cannot be used alongside the -Name parameter.
+
+.PARAMETER ID
+  ID of the page to edit. Cannot be used alongside the -ID parameter.
+
+.PARAMETER Summary
+  A short summary to attach to the edit.
+
+.PARAMETER Index
+  The section index to edit, retrieved through Get-MWPage.
+
+.PARAMETER NewTitle
+  The new title of the section.
+
+.PARAMETER BaseRevisionID
+  ID of the base revision, used to detect edit conflicts.
+
+.PARAMETER BaseTimestamp
+  Timestamp of the base revision, used to detect edit conflicts.
+
+.PARAMETER StartTimestamp
+  Timestamp when the editing process began, used to detect edit conflicts.
+
+.PARAMETER Watchlist
+  Defines whether to add the page to the user's watchlist or not.
+
+.PARAMETER FollowRedirects
+  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+.PARAMETER Bot
+  Switch used to indicate the edit was performed by a bot.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a minor concern.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a major concern.
+
+.PARAMETER Tag
+  Tag the edit according to one or more tags available in Special:Tags
+
+.OUTPUTS
+  Returns a PSObject object containing the results of the edit.
+#>
+function Rename-MWSection
+{
+  [CmdletBinding(DefaultParameterSetName = 'PageName')]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('Title', 'Identity', 'PageName')]
+    [string]$Name,
+
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Alias('PageID')]
+    [uint32]$ID,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
+    [string]$Summary,
+
+    <#
+      Section based stuff
+    #>
+    [Parameter(Mandatory)]
+    [Alias('SectionIndex')]
+    $Index,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [Alias('NewSectionTitle')]
+    [string]$NewTitle,
+
+    <#
+      Verification
+    #>
+    [Alias('BaseRevID')]
+    [uint32]$BaseRevisionID,
+    [string]$BaseTimestamp,
+    [string]$StartTimestamp,
+
+    <#
+      Watchlist
+    #>
+    [Watchlist]$Watchlist = [Watchlist]::Preferences,
+
+    <#
+      Page related stuff
+    #>
+    [switch]$FollowRedirects, # Resolve redirects?
+
+    <#
+      Tags applied to the edit
+    #>
+    [switch]$Bot,
+    [switch]$Minor,
+    [switch]$Major,
+    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    $Current = @{
+      Wikitext     = $true
+      SectionIndex = $Index
+    }
+
+    if ($Name)
+    { $Current.Name = $Name }
+    
+    if ($ID)
+    { $Current.ID = $ID }
+
+    $SectionContent = Get-MWSection @Current
+
+    if ($null -eq $SectionContent)
+    {
+      Write-Warning 'Could not retrieve section content from the specified page!'
+      return $null
+    }
+
+    # Header will always be the first line of the section content
+    $CurrentTitle = (($SectionContent.Wikitext) -split '\n')[0]
+    $SectionTitle = $CurrentTitle -replace '(={1,5})[^=]+(={1,5})', "`$1$NewTitle`$2"
+
+    $NewContent = $SectionContent.Wikitext.Replace($CurrentTitle, $SectionTitle)
+
+    $Parameters    = @{
+      Section      = $true
+      SectionIndex = $Index
+      Content      = $NewContent
+      NoCreate     = $true
+      JSON         = $JSON
+    }
+
+    if ($Name)
+    { $Parameters.Name = $Name }
+
+    if ($ID)
+    { $Parameters.ID = $ID }
+
+    if ($Summary)
+    { $Parameters.Summary = $Summary }
+
+    # Verification
+
+    if ($BaseRevisionID)
+    { $Parameters.BaseRevisionID = $BaseRevisionID }
+
+    if ($BaseTimestamp)
+    { $Parameters.BaseTimestamp = $BaseTimestamp }
+
+    if ($StartTimestamp)
+    { $Parameters.StartTimestamp = $StartTimestamp }
+
+    # Watchlist
+
+    if ($Watchlist)
+    { $Parameters.Watchlist = $Watchlist }
+
+    # Page stuff
+
+    if ($FollowRedirects)
+    { $Parameters.FollowRedirects = $FollowRedirects }
+
+    # Edit tags
+
+    if ($Bot)
+    { $Parameters.Bot = $Bot }
+
+    if ($Minor)
+    { $Parameters.Minor = $Minor }
+
+    if ($Major)
+    { $Parameters.Major = $Major }
+
+    if ($Tag)
+    { $Parameters.Tag = $Tag }
+
+    return Set-MWPage @Parameters
+  }
+
+  End { }
+}
+#endregion
+
 #region Search-MWPage
 # Not to be mistaken for Find-MWPage!
 function Search-MWPage
@@ -6267,6 +6477,236 @@ function Set-MWPage
     }
 
     return $PSCustomObject
+  }
+
+  End { }
+}
+#endregion
+
+#region Set-MWSection
+<#
+.SYNOPSIS
+  Sets the content of the specified section on the given page.
+
+.DESCRIPTION
+  The cmdlet is a front for Set-MWPage that makes it easier to set the text of a section on a page.
+
+.PARAMETER Name
+  Name of the page to edit. Cannot be used alongside the -Name parameter.
+
+.PARAMETER ID
+  ID of the page to edit. Cannot be used alongside the -ID parameter.
+
+.PARAMETER Summary
+  A short summary to attach to the edit.
+
+.PARAMETER Content
+  Content to change the specified section to.
+
+.PARAMETER Wikitext
+  Alias for the -Content parameter.
+
+.PARAMETER Index
+  The section index to edit, retrieved through Get-MWPage.
+
+.PARAMETER BaseRevisionID
+  ID of the base revision, used to detect edit conflicts.
+
+.PARAMETER BaseTimestamp
+  Timestamp of the base revision, used to detect edit conflicts.
+
+.PARAMETER StartTimestamp
+  Timestamp when the editing process began, used to detect edit conflicts.
+
+.PARAMETER Watchlist
+  Defines whether to add the page to the user's watchlist or not.
+
+.PARAMETER FollowRedirects
+  Switch to retrieve information about the target pages of any given redirect page, instead of the redirect page itself.
+
+.PARAMETER Bot
+  Switch used to indicate the edit was performed by a bot.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a minor concern.
+
+.PARAMETER Minor
+  Switch used to indicate the edit is of a major concern.
+
+.PARAMETER Tag
+  Tag the edit according to one or more tags available in Special:Tags
+
+.OUTPUTS
+  Returns a PSObject object containing the results of the edit.
+#>
+function Set-MWSection
+{
+  [CmdletBinding(DefaultParameterSetName = 'PageName')]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('Title', 'Identity', 'PageName')]
+    [string]$Name,
+
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Alias('PageID')]
+    [uint32]$ID,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
+    [string]$Summary,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
+    [Alias('Text')]
+    [string]$Content,
+
+    # Alias for $Content, but in a way to support ValueFromPipelineByPropertyName
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
+    [string]$Wikitext,
+
+    <#
+      Section based stuff
+    #>
+    [Parameter(Mandatory)]
+    [Alias('SectionIndex')]
+    $Index,
+
+    <#
+      Verification
+    #>
+    [Alias('BaseRevID')]
+    [uint32]$BaseRevisionID,
+    [string]$BaseTimestamp,
+    [string]$StartTimestamp,
+
+    <#
+      Watchlist
+    #>
+    [Watchlist]$Watchlist = [Watchlist]::Preferences,
+
+    <#
+      Page related stuff
+    #>
+    [switch]$FollowRedirects, # Resolve redirects?
+
+    <#
+      Tags applied to the edit
+    #>
+    [switch]$Bot,
+    [switch]$Minor,
+    [switch]$Major,
+    [string[]]$Tag, # Tag the edit according to one or more tags available in Special:Tags
+
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    if ($Content -and $Wikitext)
+    {
+      Write-Warning "-Content and -Wikitext cannot be used at the same time!"
+      return $null
+    }
+
+    if ($Wikitext)
+    { $Content = $Wikitext }
+
+    #if ($Prepend -and $Content -notmatch "\n$")
+    #{ $Content += "`n" }
+
+    $Current = @{
+      Wikitext     = $true
+      SectionIndex = $Index
+    }
+
+    if ($Name)
+    { $Current.Name = $Name }
+    
+    if ($ID)
+    { $Current.ID = $ID }
+
+    $SectionContent = Get-MWSection @Current
+
+    if ($null -eq $SectionContent)
+    {
+      Write-Warning 'Could not retrieve section content from the specified page!'
+      return $null
+    }
+
+    # Header will always be the first line of the section content
+    $SectionTitle = (($SectionContent.Wikitext) -split '\n')[0]
+
+    $NewContent = ($SectionTitle + "`n" + $Content)
+
+    $Parameters    = @{
+      Section      = $true
+      SectionIndex = $Index
+      Content      = $NewContent
+      NoCreate     = $true
+      JSON         = $JSON
+    }
+
+    if ($Name)
+    { $Parameters.Name = $Name }
+
+    if ($ID)
+    { $Parameters.ID = $ID }
+
+    if ($Summary)
+    { $Parameters.Summary = $Summary }
+
+    # Verification
+
+    if ($BaseRevisionID)
+    { $Parameters.BaseRevisionID = $BaseRevisionID }
+
+    if ($BaseTimestamp)
+    { $Parameters.BaseTimestamp = $BaseTimestamp }
+
+    if ($StartTimestamp)
+    { $Parameters.StartTimestamp = $StartTimestamp }
+
+    # Watchlist
+
+    if ($Watchlist)
+    { $Parameters.Watchlist = $Watchlist }
+
+    # Page stuff
+
+    if ($FollowRedirects)
+    { $Parameters.FollowRedirects = $FollowRedirects }
+
+    # Edit tags
+
+    if ($Bot)
+    { $Parameters.Bot = $Bot }
+
+    if ($Minor)
+    { $Parameters.Minor = $Minor }
+
+    if ($Major)
+    { $Parameters.Major = $Major }
+
+    if ($Tag)
+    { $Parameters.Tag = $Tag }
+
+    return Set-MWPage @Parameters
   }
 
   End { }
