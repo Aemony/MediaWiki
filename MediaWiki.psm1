@@ -5948,6 +5948,98 @@ function New-MWSection
 }
 #endregion
 
+#region Remove-MWPage
+function Remove-MWPage
+{
+  [CmdletBinding(DefaultParameterSetName = 'PageName')]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('Title', 'Identity', 'PageName')]
+    [string[]]$Name,
+
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Alias('PageID')]
+    [int[]]$ID,
+
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
+    [string]$Reason,
+
+    <#
+      Watchlist
+    #>
+    [Watchlist]$Watchlist = [Watchlist]::Preferences,
+
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin
+  {
+    $ArrJSON = @()
+  }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    [String[]]$Pages   = @()
+
+    if ($ID)
+    { $Pages = $ID }
+    else
+    { $Pages = $Name }
+
+    ForEach ($Page in $Pages)
+    {
+      $Body = [ordered]@{
+        action    = 'delete'
+        reason    = $Reason
+        watchlist = $Watchlist.ToString().ToLower()
+        token     = (Get-MWCsrfToken)
+      }
+
+      if ($ID)
+      { $Body.pageid = $Page }
+      else
+      { $Body.title = $Page }
+
+      $ArrJSON += Invoke-MWApiRequest -Body $Body -Method POST
+    }
+  }
+
+  End
+  {
+    if ($JSON)
+    { return $ArrJSON }
+
+    $ArrPSCustomObject = @()
+    ForEach ($Page in $ArrJSON.delete)
+    {
+
+      $ObjectProperties = [ordered]@{
+        Name            = $Page.delete.title
+        Reason          = $Page.delete.reason
+        LogID           = $Page.delete.logid
+      }
+
+      $ArrPSCustomObject += New-Object PSObject -Property $ObjectProperties
+    }
+    return $ArrPSCustomObject
+  }
+}
+#endregion
+
 #region Remove-MWSection
 <#
 .SYNOPSIS
@@ -6132,98 +6224,6 @@ function Remove-MWSection
   }
 
   End { }
-}
-#endregion
-
-#region Remove-MWPage
-function Remove-MWPage
-{
-  [CmdletBinding(DefaultParameterSetName = 'PageName')]
-  param (
-    <#
-      Core parameters
-    #>
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
-    [ValidateNotNullOrEmpty()]
-    [Alias('Title', 'Identity', 'PageName')]
-    [string[]]$Name,
-
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
-    [Alias('PageID')]
-    [int[]]$ID,
-
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
-    [AllowEmptyString()]
-    [string]$Reason,
-
-    <#
-      Watchlist
-    #>
-    [Watchlist]$Watchlist = [Watchlist]::Preferences,
-
-    <#
-      Debug
-    #>
-    [switch]$JSON
-  )
-
-  Begin
-  {
-    $ArrJSON = @()
-  }
-
-  Process
-  {
-    if ($null -eq $script:Config.URI)
-    {
-      Write-Warning "Not connected to a MediaWiki instance."
-      return $null
-    }
-
-    [String[]]$Pages   = @()
-
-    if ($ID)
-    { $Pages = $ID }
-    else
-    { $Pages = $Name }
-
-    ForEach ($Page in $Pages)
-    {
-      $Body = [ordered]@{
-        action    = 'delete'
-        reason    = $Reason
-        watchlist = $Watchlist.ToString().ToLower()
-        token     = (Get-MWCsrfToken)
-      }
-
-      if ($ID)
-      { $Body.pageid = $Page }
-      else
-      { $Body.title = $Page }
-
-      $ArrJSON += Invoke-MWApiRequest -Body $Body -Method POST
-    }
-  }
-
-  End
-  {
-    if ($JSON)
-    { return $ArrJSON }
-
-    $ArrPSCustomObject = @()
-    ForEach ($Page in $ArrJSON.delete)
-    {
-
-      $ObjectProperties = [ordered]@{
-        Name            = $Page.delete.title
-        Reason          = $Page.delete.reason
-        LogID           = $Page.delete.logid
-      }
-
-      $ArrPSCustomObject += New-Object PSObject -Property $ObjectProperties
-    }
-    return $ArrPSCustomObject
-  }
 }
 #endregion
 
