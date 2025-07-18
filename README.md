@@ -1,7 +1,7 @@
 # MediaWiki
 This is a PowerShell module for interfacing with a MediaWiki API endpoint that I have worked at
 on and off occasionally over the last couple of years. It was initially created to assist me in
-performing various maintenance tasks for the [PCGamingWiki](https://www.pcgamingwiki.com/) (PCGW) community project.
+performing [various maintenance tasks](https://github.com/Aemony/AemonyBot) for the [PCGamingWiki](https://www.pcgamingwiki.com/) (PCGW) community project.
 
 While other more powerful alternatives do exists (e.g. pymediawiki) I personally prefer working
 with and use PowerShell as that is what I also use professionally, and I feel that a well-defined
@@ -171,6 +171,8 @@ Get-MWPage 'NieR: Automata' | Update-MWPage -Force
 ```
 
 **PCGamingWiki specific:**
+
+*For more real-world examples, visit the [AemonyBot](https://github.com/Aemony/AemonyBot) repository.*
 
 Performs a Cargo query to retrieve all pages using the SecuROM DRM:
 ```powershell
