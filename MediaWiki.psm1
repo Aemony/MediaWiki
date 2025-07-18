@@ -2735,9 +2735,9 @@ function Find-MWFileDuplicate
 }
 #endregion
 
-#region Find-MWOrphanedRedirect
-# Lists orphaned redirect pages which no other pages link to.
-function Find-MWOrphanedRedirect
+#region Find-MWRedirectOrphan
+# Finds all redirect pages which no other pages link to.
+function Find-MWRedirectOrphan
 {
   [CmdletBinding()]
   param (
