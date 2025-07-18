@@ -163,11 +163,11 @@ $Pages | Update-MWPage -Force
   * Interface for [meta=userinfo](https://www.mediawiki.org/wiki/API:Userinfo)
 * `Get-MWCurrentUserPreference` - Retrieve the perferences of the current user.
   * Implemented as a variant of `Get-MWCurrentUser`.
-* `Get-Get-MWCurrentUserGroup` - Retrieve the groups the current user is a member of.
+* `Get-MWCurrentUserGroup` - Retrieve the groups the current user is a member of.
   * Implemented as a variant of `Get-MWCurrentUser`.
-* `Get-Get-MWCurrentUserRateLimit` - Retrieve the rate limits applied to the current user.
+* `Get-MWCurrentUserRateLimit` - Retrieve the rate limits applied to the current user.
   * Implemented as a variant of `Get-MWCurrentUser`.
-* `Get-Get-MWCurrentUserRight` - Retrieve the permissions/rights of the current user.
+* `Get-MWCurrentUserRight` - Retrieve the permissions/rights of the current user.
   * Implemented as a variant of `Get-MWCurrentUser`.
 
 **Watchlist**
