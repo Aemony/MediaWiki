@@ -36,47 +36,152 @@ changes throughout its code as I learn, rethink, and redesign components here an
 
 4. Once having established a connection to an API endpoint, use one of these commands to interface with it:
 
-   * `Connect-MWSession` - Connect to an API endpoint.
-   * `ConvertTo-MWParsedOutput` - Limited interface for [action=parse](https://www.mediawiki.org/wiki/API:Parsing_wikitext) to get the endpoint to return with the parsed output of a given wikitext.
-   * `Disconnect-MWSession` - Disconnect from the API endpoint.
-   * `Find-MWImage` - Interface for [list=allimages](https://www.mediawiki.org/wiki/API:Allimages) to list all image files.
-   * `Find-MWOrphanedRedirect` - Helper to generate a list of all orphaned redirects. Takes a long time with ~50k pages, so be warned. :)
-   * `Find-MWPage` - Interface for [list=allpages](https://www.mediawiki.org/wiki/API:Allpages) to list all pages.
-   * `Find-MWRedirect` - Variant of `Find-MWPage` to list all redirect pages.
-   * `Get-MWBackLink` - Interface for [list=backlinks](https://www.mediawiki.org/wiki/API:Backlinks) to list all pages which links to the given page.
-   * `Get-MWCargoQuery` - **Requires [Extension:Cargo](https://www.mediawiki.org/wiki/Extension:Cargo).** Performs a Cargo query.
-   * `Get-MWCategoryMember` - Interface for [list=categorymembers](https://www.mediawiki.org/wiki/API:Backlinks) to list all pages in the given category.
-   * `Get-MWDuplicateFile` - Uses the *allimages* generator to retrieve duplicates of the given image, if any exists.
-   * `Get-MWEmbeddedIn` - Interface for [list=embeddedin](https://www.mediawiki.org/wiki/API:Embeddedin) to list all other pages the given page is embedded in.
-   * `Get-MWGroupMember` - Alias for `Get-MWCategoryMember`. *Might change!*
-   * `Get-MWImageInfo` - Interface for [prop=imageinfo](https://www.mediawiki.org/wiki/API:Imageinfo) to list file information and upload history for the given image.
-   * `Get-MWImageUsage` - Interface for [list=imageusage](https://www.mediawiki.org/wiki/API:Imageusage) to list all pages that use the given image.
-   * `Get-MWRecentChanges` - Interface for [list=recentchanges](https://www.mediawiki.org/wiki/API:RecentChanges) to list all recent changes on the site.
-   * `Get-MWLink` - Uses the *links* generator to retrieve all internal wiki links of the given page.
-   * `Get-MWNamespace` - Retrieves all registered namespaces on the site.
-   * `Get-MWNamespacePage` - Variant of `Find-MWPage` to list all pages in the given namespace.
-   * `Get-MWPage` - Interface for [action=parse](https://www.mediawiki.org/wiki/API:Parsing_wikitext) to retrieve the wikitext of the given page.
-   * `Get-MWPageInfo` - Interface for [prop=info](https://www.mediawiki.org/wiki/API:Info) to get properties for the given page.
-   * `Get-MWProtectionLevel` - Retrieves all registered protection levels on the site.
-   * `Get-MWProtectionType` - Retrieves all registered protection types on the site.
-   * `Get-MWSiteInfo` - Interface for [meta=siteinfo](https://www.mediawiki.org/wiki/API:Siteinfo) to retrieve general information about the site. 
-   * `Get-MWTranscludedIn` - Alias for `Get-MWEmbeddedIn`.
-   * `Get-MWUserInfo` - Interface for [meta=userinfo](https://www.mediawiki.org/wiki/API:Userinfo) to retrieve general information about the current user. 
-   * `Invoke-MWApiContinueRequest` - Useful helper that automatically handles continuing API requests when there are more results available.
-   * `Invoke-MWApiRequest` - Handles the core aspects of performing an API request.
-   * `Move-MWPage` - Interface for [action=move](https://www.mediawiki.org/wiki/API:Move) to move a page.
-   * `New-MWPage` - Variant of `Set-MWPage` to create a new page.
-   * `Remove-MWPage` - Interface for [action=delete](https://www.mediawiki.org/wiki/API:Delete) to delete a page.
-   * `Search-MWPage` - Interface for [list=search](https://www.mediawiki.org/wiki/API:Search) to perform a full text search on the site.
-   * `Set-MWPage` - Interface for [action=edit](https://www.mediawiki.org/wiki/API:Edit) to edit a page.
-   * `Update-MWPage` - Weird hack that is both an interface for [action=purge](https://www.mediawiki.org/wiki/API:Purge) but also a variant of `Set-MWPage` when used with -NullEdit.
-     * A "null edit" is what the PCGW community ended up calling performing an edit where no actual content is changed. This type of change can at times trigger backend refreshes (e.g. extensions such as Cargo) that otherwise would not be affected by a normal purge (even ones with ForceLinkUpdate and ForceRecursiveLinkUpdate enforced).
-   * `Watch-MWPage` - Not implemented. Will probably end up watching or unwatching a page maybe?
-
 ## Cheat sheet
 If actively working on the module and its code, I find the below one-liner to be quite helpful to reload the whole thing quickly:
 
 * `Disconnect-MWSession; Remove-Module MediaWiki; Import-Module .\MediaWiki; Connect-MWSession -Persistent -Guest`
+
+## Cmdlets
+**Pages**
+* `Add-MWPage` - Add content to a page.
+  * Implemented as a variant of `Set-MWPage`.
+* `Get-MWPage` -  Retrieves information about the given page. Use `-Wikitext` to also fetch the wikitext of the page.
+  * Interface for [action=parse](https://www.mediawiki.org/wiki/API:Parsing_wikitext).
+* `Get-MWPageInfo` - Retrieves additional properties of the given page.
+  * Interface for [prop=info](https://www.mediawiki.org/wiki/API:Info).
+* `Get-MWLink` - Retrieve all internal wiki links of the given page.
+  * Uses the *links* generator.
+  * **Possible rename to Get-MWPageLink?**
+* `Clear-MWPage` - Clears all content on the specified page.
+  * Implemented as a variant of `Set-MWPage`.
+* `Find-MWPage` - List all pages on the wiki.
+  * Interface for [list=allpages](https://www.mediawiki.org/wiki/API:Allpages).
+* `Move-MWPage` - Moves a page.
+  * Interface for [action=move](https://www.mediawiki.org/wiki/API:Move).
+* `New-MWPage` - Creates a new page. Implemented as a variant of `Set-MWPage`.
+* `Remove-MWPage` - Deletes a page.
+  * Interface for [action=delete](https://www.mediawiki.org/wiki/API:Delete).
+* `Rename-MWPage` - Alias for `Move-MWPage`.
+* `Search-MWPage` - Perform a full text search on the site.
+  * Interface for [list=search](https://www.mediawiki.org/wiki/API:Search).
+* `Set-MWPage` - Edit a page.
+  * Interface for [action=edit](https://www.mediawiki.org/wiki/API:Edit).
+* `Update-MWPage` - Purges the cache for a page. Use `-Force` for a deeper purge by performing an empty edit of the page.
+  * An empty edit (`-Force`) can at times trigger backend refreshes (e.g. extensions such as Cargo) that otherwise would not be affected by a normal cache purge.
+  * Interface for [action=purge](https://www.mediawiki.org/wiki/API:Purge). Imlemented as a variant of `Set-MWPage` when used with `-Force`.
+
+**Sections**
+* `Add-MWSection` - Add content to the given section.
+  * Implemented as a variant of `Set-MWPage`.
+* `Clear-MWSection` - Clear the content from the given section.
+  * Implemented as a variant of `Set-MWPage`.
+* `Get-MWSection` - Retrieves information about the given section. Use `-Wikitext` to also fetch the wikitext of the section.
+  * Implemented as a variant of `Get-MWPage`.
+* `Remove-MWSection` - Removes the given section from the page.
+  * Implemented as a variant of `Set-MWPage`.
+* `Rename-MWSection` - Changes the title/header of the given section.
+  * Implemented as a variant of `Set-MWPage`.
+
+**Images**
+* `Find-MWImage` - List all image files.
+  * Interface for [list=allimages](https://www.mediawiki.org/wiki/API:Allimages).
+* `Get-MWDuplicateFile` - Find duplicates of the given image, if any exists.
+  * Uses the *allimages* generator.
+* `Get-MWImageInfo` - List file information and upload history for the given image.
+  * Interface for [prop=imageinfo](https://www.mediawiki.org/wiki/API:Imageinfo).
+* `Get-MWImageUsage` - List all pages that use the given image.
+  * Interface for [list=imageusage](https://www.mediawiki.org/wiki/API:Imageusage).
+
+**Links / Redirects**
+* `Get-MWBackLink` - List all pages which links to the given page.
+  * Interface for [list=backlinks](https://www.mediawiki.org/wiki/API:Backlinks).
+* `Find-MWRedirect` - Variant of `Find-MWPage` to list all redirect pages.
+* `Find-MWOrphanedRedirect` - Helper to generate a list of all orphaned redirects. Takes a long time with ~50k pages, so be warned. :) 
+
+**Categories**
+* `Get-MWCategoryMember` - List all pages in the given category.
+  * Interface for [list=categorymembers](https://www.mediawiki.org/wiki/API:Categorymembers).
+
+**Templates** 
+* `Get-MWEmbeddedIn` - List all other pages the given page is embedded in.
+  * Interface for [list=embeddedin](https://www.mediawiki.org/wiki/API:Embeddedin).
+* `Get-MWTranscludedIn` - Alias for `Get-MWEmbeddedIn`. 
+
+**Namespaces**
+* `Get-MWNamespace` - Retrieves all registered namespaces on the site.
+* `Get-MWNamespacePage` - List all pages in the given namespace.
+  * Implemented as a variant of `Find-MWPage`.
+
+**Recent Changes**
+* `Get-MWRecentChanges` - Interface for [list=recentchanges](https://www.mediawiki.org/wiki/API:RecentChanges) to list all recent changes on the site.
+
+**Connection**
+* `Connect-MWSession` - Connect to an API endpoint.
+* `Disconnect-MWSession` - Disconnect from the API endpoint.
+
+**Site information**
+* `Get-MWChangeTag` - List all recognized change tags on the site.
+  * Interface for [list=tags](https://www.mediawiki.org/wiki/API:Tags).
+* `Get-MWProtectionLevel` - Retrieves all registered protection levels on the site.
+  * Implemented as a variant of `Get-MWSiteInfo`.
+* `Get-MWProtectionType` - Retrieves all registered protection types on the site.
+  * Implemented as a variant of `Get-MWSiteInfo`.
+* `Get-MWSiteInfo` - Retrieve general information about the site.
+  * Interface for [meta=siteinfo](https://www.mediawiki.org/wiki/API:Siteinfo).
+
+**User information**
+* `Get-MWCurrentUser` - Retrieve general information about the signed in user.
+  * Interface for [meta=userinfo](https://www.mediawiki.org/wiki/API:Userinfo)
+* `Get-MWCurrentUserPreference` - Retrieve the perferences of the current user.
+  * Implemented as a variant of `Get-MWCurrentUser`.
+* `Get-Get-MWCurrentUserGroup` - Retrieve the groups the current user is a member of.
+  * Implemented as a variant of `Get-MWCurrentUser`.
+* `Get-Get-MWCurrentUserRateLimit` - Retrieve the rate limits applied to the current user.
+  * Implemented as a variant of `Get-MWCurrentUser`.
+* `Get-Get-MWCurrentUserRight` - Retrieve the permissions/rights of the current user.
+  * Implemented as a variant of `Get-MWCurrentUser`.
+
+**Watchlist**
+* `Watch-MWPage` - Not implemented. Will probably end up watching or unwatching a page maybe? 
+
+**Extensions**
+* `Get-MWCargoQuery` - Performs a query against the Cargo backend, provided [Extension:Cargo](https://www.mediawiki.org/wiki/Extension:Cargo) is installed.
+
+**Misc**
+* `ConvertTo-MWParsedOutput` - Have the site parse the given wikitext and reply with the results.
+  * Limited interface for [action=parse](https://www.mediawiki.org/wiki/API:Parsing_wikitext).
+* `Invoke-MWApiContinueRequest` - Useful helper that automatically handles continuing API requests when there are more results available.
+* `Invoke-MWApiRequest` - Handles the core aspects of performing an API request.
+
+## Examples
+
+Retrieve the wikitext of a page:
+```powershell
+Get-MWPage 'NieR: Automata' -Wikitext
+```
+
+Add new content to the end of a specific section:
+```powershell
+(Get-MWPage 'NieR: Automata').Sections | Where Line -eq 'Inventory Editor' | Add-MWSection -Content "In Summer of 2038 an updated version was released with bug fixes and QoL improvements." -Summary "Added information pertaining to the 2038 update."
+```
+
+Forces a deeper cache purge of a page by performing an empty edit on it:
+```powershell
+Get-MWPage 'NieR: Automata' | Update-MWPage -Force
+```
+
+**PCGamingWiki specific:**
+
+Performs a Cargo query to retrieve all pages using the SecuROM DRM:
+```powershell
+Get-MWCargoQuery -Table Availability -Where "Uses_DRM HOLDS LIKE 'SecuROM%'" -Fields 'Uses_DRM' -ResultSize Unlimited
+```
+
+Performs a deep cache purge on all SecuROM pages:
+```powershell
+$Pages = Get-MWCargoQuery -Table Availability -Where "Uses_DRM HOLDS LIKE 'SecuROM%'" -Fields 'Uses_DRM' -ResultSize Unlimited
+$Pages | Update-MWPage -Force
+```
 
 ## Possible future To-Do's
 Random personal thoughts and ideas that have come up...
