@@ -2438,8 +2438,8 @@ function Disconnect-MWSession
 }
 #endregion
 
-#region Find-MWImage
-function Find-MWImage
+#region Find-MWFile
+function Find-MWFile
 {
   [CmdletBinding(DefaultParameterSetName='BetweenNames')]
   param
@@ -2448,7 +2448,7 @@ function Find-MWImage
       Search by name
     #>
     [Parameter(ParameterSetName = 'BetweenNames', Position=0)]
-    [Alias('ImageName', 'Prefix')]
+    [Alias('ImageName', 'FileName', 'Prefix')]
     [string]$Name,
 
     [Parameter(ParameterSetName = 'BetweenNames')]
@@ -2609,6 +2609,128 @@ function Find-MWImage
     { return $ArrJSON }
 
     return (($ArrJSON.query.allimages | Select-Object -First $ResultSize) | ForEach-Object { ConvertFrom-HashtableToPSObject $_ })
+  }
+}
+#endregion
+
+#region Find-MWFileDuplicate
+function Find-MWFileDuplicate
+{
+  [CmdletBinding(DefaultParameterSetName = 'PageName')]
+  param (
+    <#
+      Core parameters
+    #>
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('ImageName', 'FileName')]
+    [string[]]$Name,
+
+    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
+    [Alias('PageID')]
+    [int[]]$ID,
+
+    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
+    [string]$ResultSize = 1000,
+
+    [parameter(ParameterSetName = 'All')]
+    [switch]$All,
+    
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin
+  {
+    $ArrJSON = @()
+  }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+    
+    if ($ResultSize -eq 'Unlimited')
+    { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
+
+    $Body = [ordered]@{}
+
+    # Generator
+    if ($All)
+    {
+      $Body = [ordered]@{
+        action    = 'query'
+        generator = 'allimages'
+        prop      = 'duplicatefiles'
+        gailimit  = 'max'
+      }
+    }
+    
+    # Regular Query
+    else {
+      $Body = [ordered]@{
+        action  = 'query'
+        prop    = 'duplicatefiles'
+        dflimit = 'max'
+      }
+    }
+
+    if ($Name)
+    {
+      $FixedNames = @()
+      ForEach ($FileName in $Name)
+      {
+        if ((Get-MWNamespace -PageName $FileName).Name -ne 'File')
+        { $FixedNames += "File:$FileName" }
+        else
+        { $FixedNames += $FileName }
+      }
+      $Body.titles = $FixedNames -join '|'
+    }
+
+    if ($ID)
+    { $Body.pageids = $ID -join '|' }
+
+    $ArrJSON += Invoke-MWApiContinueRequest -Body $Body -Method GET -ResultSize $ResultSize -Node1 'pages'
+  }
+
+  End
+  {
+    if ($JSON)
+    { return $ArrJSON }
+
+    $ArrPSCustomObject = @()
+    if ($Pages = ($ArrJSON.query.pages | Where-Object { $null -ne $_.duplicatefiles }) )
+    {
+      ForEach ($Page in $Pages)
+      {
+        if ($null -eq $Page.duplicatefiles)
+        { continue }
+
+        if ($null -ne $Page.missing)
+        { Write-Warning "The file '$($Page.title)$($Page.pageid)' does not exist." }
+
+        else
+        {
+          $ObjectProperties = [ordered]@{
+            Namespace  = (Get-MWNamespace -NamespaceID $Page.ns).Name
+            Name       = $Page.title
+            ID         = $Page.pageid
+          }
+
+          if ($Page.duplicatefiles)
+          { $ObjectProperties.Duplicates = ($Page.duplicatefiles | ForEach-Object { New-Object -TypeName PSObject -Property $_ }) }
+
+          $ArrPSCustomObject += New-Object PSObject -Property $ObjectProperties
+        }
+      }
+    }
+    return $ArrPSCustomObject | Select-Object -First $ResultSize
   }
 }
 #endregion
@@ -3513,128 +3635,6 @@ function Get-MWCurrentUserRight
 }
 #endregion
 
-#region Get-MWDuplicateFile
-function Get-MWDuplicateFile
-{
-  [CmdletBinding(DefaultParameterSetName = 'PageName')]
-  param (
-    <#
-      Core parameters
-    #>
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
-    [ValidateNotNullOrEmpty()]
-    [Alias('Title', 'Identity', 'PageName')]
-    [string[]]$Name,
-
-    [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
-    [Alias('PageID')]
-    [int[]]$ID,
-
-    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
-    [string]$ResultSize = 1000,
-
-    [parameter(ParameterSetName = 'All')]
-    [switch]$All,
-    
-    <#
-      Debug
-    #>
-    [switch]$JSON
-  )
-
-  Begin
-  {
-    $ArrJSON = @()
-  }
-
-  Process
-  {
-    if ($null -eq $script:Config.URI)
-    {
-      Write-Warning "Not connected to a MediaWiki instance."
-      return $null
-    }
-    
-    if ($ResultSize -eq 'Unlimited')
-    { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
-
-    $Body = [ordered]@{}
-
-    # Generator
-    if ($All)
-    {
-      $Body = [ordered]@{
-        action    = 'query'
-        generator = 'allimages'
-        prop      = 'duplicatefiles'
-        gailimit  = 'max'
-      }
-    }
-    
-    # Regular Query
-    else {
-      $Body = [ordered]@{
-        action  = 'query'
-        prop    = 'duplicatefiles'
-        dflimit = 'max'
-      }
-    }
-
-    if ($Name)
-    {
-      $FixedNames = @()
-      ForEach ($FileName in $Name)
-      {
-        if ((Get-MWNamespace -PageName $FileName).Name -ne 'File')
-        { $FixedNames += "File:$FileName" }
-        else
-        { $FixedNames += $FileName }
-      }
-      $Body.titles = $FixedNames -join '|'
-    }
-
-    if ($ID)
-    { $Body.pageids = $ID -join '|' }
-
-    $ArrJSON += Invoke-MWApiContinueRequest -Body $Body -Method GET -ResultSize $ResultSize -Node1 'pages'
-  }
-
-  End
-  {
-    if ($JSON)
-    { return $ArrJSON }
-
-    $ArrPSCustomObject = @()
-    if ($Pages = ($ArrJSON.query.pages | Where-Object { $null -ne $_.duplicatefiles }) )
-    {
-      ForEach ($Page in $Pages)
-      {
-        if ($null -eq $Page.duplicatefiles)
-        { continue }
-
-        if ($null -ne $Page.missing)
-        { Write-Warning "The file '$($Page.title)$($Page.pageid)' does not exist." }
-
-        else
-        {
-          $ObjectProperties = [ordered]@{
-            Namespace  = (Get-MWNamespace -NamespaceID $Page.ns).Name
-            Name       = $Page.title
-            ID         = $Page.pageid
-          }
-
-          if ($Page.duplicatefiles)
-          { $ObjectProperties.Duplicates = ($Page.duplicatefiles | ForEach-Object { New-Object -TypeName PSObject -Property $_ }) }
-
-          $ArrPSCustomObject += New-Object PSObject -Property $ObjectProperties
-        }
-      }
-    }
-    return $ArrPSCustomObject | Select-Object -First $ResultSize
-  }
-}
-#endregion
-
 #region Get-MWEmbeddedIn
 Set-Alias -Name Get-MWTranscludedIn -Value Get-MWEmbeddedIn
 function Get-MWEmbeddedIn
@@ -3723,8 +3723,8 @@ function Get-MWEmbeddedIn
 }
 #endregion
 
-#region Get-MWImageInfo
-function Get-MWImageInfo
+#region Get-MWFileInfo
+function Get-MWFileInfo
 {
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
@@ -3733,7 +3733,7 @@ function Get-MWImageInfo
     #>
     [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
-    [Alias('Title', 'Identity', 'PageName')]
+    [Alias('ImageName', 'FileName')]
     [string[]]$Name,
 
     [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]
@@ -3818,8 +3818,8 @@ function Get-MWImageInfo
 }
 #endregion
 
-#region Get-MWImageUsage
-function Get-MWImageUsage
+#region Get-MWFileUsage
+function Get-MWFileUsage
 {
   [CmdletBinding(DefaultParameterSetName = 'PageName')]
   param (
@@ -3828,7 +3828,7 @@ function Get-MWImageUsage
     #>
     [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageName', Position=0)]
     [ValidateNotNullOrEmpty()]
-    [Alias('Title', 'Identity', 'PageName')]
+    [Alias('ImageName', 'FileName')]
     [string[]]$Name,
 
     [parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'PageID', Position=0)]

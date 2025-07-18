@@ -110,14 +110,14 @@ $Pages | Update-MWPage -Force
 * `Set-MWSection` - Sets the content of a section.
   * Implemented as a variant of `Set-MWPage`.
 
-**Images**
-* `Find-MWImage` - List all image files.
+**Files/Images**
+* `Find-MWFile` - List all files/images.
   * Interface for [list=allimages](https://www.mediawiki.org/wiki/API:Allimages).
-* `Get-MWDuplicateFile` - Find duplicates of an image, if any exists.
+* `Find-MWFileDuplicate` - Find duplicates of a file/image, if any exists.
   * Uses the *allimages* generator.
-* `Get-MWImageInfo` - List file information and upload history for an image.
+* `Get-MWFileInfo` - List file information and upload history.
   * Interface for [prop=imageinfo](https://www.mediawiki.org/wiki/API:Imageinfo).
-* `Get-MWImageUsage` - List all pages that use an image.
+* `Get-MWFileUsage` - List all pages that use a file/image.
   * Interface for [list=imageusage](https://www.mediawiki.org/wiki/API:Imageusage).
 
 **Links / Redirects**
