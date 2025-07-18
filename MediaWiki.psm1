@@ -7140,7 +7140,7 @@ function Set-MWSection
 
 .DESCRIPTION
   Supports purging the cache for the specified pages through either
-  the regular method or as an empty edit (using the -NullEdit switch)
+  the regular method or as an empty edit (using the -Force switch)
   which can affect deeper backend values (e.g. extensions) in a way that
   a normal purge might not.
 
