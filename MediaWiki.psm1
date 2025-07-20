@@ -86,7 +86,11 @@ Write-Host ""
 #         _all_ of the data, _and then_ filters upon it. It makes for a simpler design
 #           to implement, and reduces a huge amount of unnecessary repeated calls.
 
-
+# - Supported parameter values can be retrieved through Get-MWAPIModule, e.g.
+#     (Get-MWAPIModule -Properties parse).paraminfo.modules.parameters | where name -eq 'prop').type
+#  
+# Long-term potential TODO (lol); change $Properties and the like to be based on values
+#   obtained through Get-MWAPIModule...
 
 
 
@@ -583,6 +587,44 @@ $script:PropertyNamePascal    = @{
   description                 = 'Description'
   displayname                 = 'DisplayName'
   hitcount                    = 'HitCount'
+
+  <# API Modules #>
+  classname                   = 'ClassName'
+  dynamicparameters           = 'DynamicParameters'
+  examples                    = 'Examples'
+  helpurls                    = 'HelpUrls'
+  licenselink                 = 'LicenseLink'
+  licensetag                  = 'LicenseTag'
+  mustbeposted                = 'MustBePosted'
+  parameters                  = 'Parameters'
+    allowsduplicates            = 'AllowsDuplicates'
+    allspecifier                = 'AllSpecifier'
+    deprecated                  = 'Deprecated'
+    deprecatedvalues            = 'DeprecatedValues'
+    highlimit                   = 'HighLimit'
+    highmax                     = 'HighMax'
+    limit                       = 'Limit'
+    lowlimit                    = 'LowLimit'
+    max                         = 'Max'
+    min                         = 'Min'
+    multi                       = 'Multi'
+    required                    = 'Required'
+    sensitive                   = 'Sensitive'
+    subtypes                    = 'SubTypes'
+    tokentype                   = 'TokenType'
+  path                        = 'Path'
+  readrights                  = 'ReadRights'
+  info                        = 'Info'
+  internal                    = 'Internal'
+  extranamespaces             = 'ExtraNamespaces'
+  slot                        = 'Slot'
+  sourcename                  = 'SourceName'
+  submodules                  = 'SubModules'
+  submoduleparamprefix        = 'SubModuleParameterPrefix'
+  templatedparameters         = 'TemplatedParameters'
+    templatevars                = 'TemplateVariables'
+  values                      = 'Values'
+  writerights                 = 'WriteRights'
 
   <# Debug #>
   curtimestamp                = 'ServerTimestamp'                # Current server timestamp / Retrieved
@@ -3034,6 +3076,69 @@ function Find-MWRedirectOrphan
     { return $ArrJSON }
    
     return $ArrPSCustomObject
+  }
+}
+#endregion
+
+#region Get-MWAPIModule
+function Get-MWAPIModule
+{
+  <#
+  .SYNOPSIS
+    Retrieves information about API modules available on the site.
+
+  .PARAMETER Properties
+    List of module names (values of the action and format parameters, or main). Can specify submodules with a +, or all submodules with +*, or all submodules recursively with +**. 
+
+  .PARAMETER HelpFormat
+    How to format the help parts of the response, mostly the Description and Examples. Defaults to 'None'.
+
+  .INPUTS
+    None.
+
+  .OUTPUTS
+    Array of PSObject holding the information about the requested API modules.
+  #>
+  [CmdletBinding()]
+  param (
+    # [action|format][+submodule], assumes 'main' if no action or format is specified.
+    # e.g. 'query+*' to retrieve info about all submodules to the 'query' action
+    # 'main+**' retrieve info about all submodules of all actions.
+    [string[]]$Properties,
+
+    [ValidateSet('None', 'Wikitext', 'Html', 'Raw')]
+    [string]$HelpFormat = 'None',
+
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process { }
+
+  End
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    $Body = [ordered]@{
+      action     = 'paraminfo'
+      modules    = $Properties -join '|'
+      helpformat = $HelpFormat.ToLower()
+    }
+
+    $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -NoAssert
+
+    if ($JSON)
+    { return $Response }
+
+    return ($Response.paraminfo.modules | ForEach-Object { ConvertFrom-HashtableToPSObject $_ })
   }
 }
 #endregion
