@@ -7257,7 +7257,7 @@ function Set-MWPage
 
         if ($null -ne $Page.new)
         {
-          Write-Warning "'$($Page.title)' was created as a result of this edit."
+          Write-Warning ('Page was created as a result of this edit: ' + $script:Cache.SiteInfo.General.Server + '/wiki/' + ($Page.title.Replace(' ', '_')))
           $ObjectProperties.New = $true
         }
 
