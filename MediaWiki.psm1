@@ -1219,6 +1219,90 @@ function Write-MWWarningResultSize
 }
 #endregion
 
+#region Set-Substring
+Set-Alias -Name Replace-Substring -Value Set-Substring
+function Set-Substring
+{
+<#
+  .SYNOPSIS
+    String helper used to replace the nth occurrence of a substring.
+  .DESCRIPTION
+    Function used to replace the nth occurrence of a substring within a given string,
+    using an optional string comparison type.
+  .PARAMETER InputObject
+    String to act upon.
+  .PARAMETER Substring
+    Substring to search for.
+  .PARAMETER NewSubstring
+    The new substring to replace the found substring with.
+  .PARAMETER Occurrence
+    The nth occurrence to replace. Defaults to first occurrence.
+  .PARAMETER Comparison
+    The string comparison type to use. Defaults to InvariantCultureIgnoreCase.
+  .EXAMPLE
+    $ContentBlock | Set-Substring -Substring $Target -Replacement $NewSection -Occurrence -1
+  .INPUTS
+    String to act upon.
+  .OUTPUTS
+    Returns InputObject with the nth matching substring changed.
+#>
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory, ValueFromPipeline)]
+    [string]$InputObject,
+    
+    [Parameter(Mandatory, Position=0)]
+    [string]$Substring,
+
+    [Parameter(Mandatory, Position=1)]
+    [Alias('Replacement')]
+    [AllowEmptyString()]
+    [string]$NewSubstring,
+
+    [Parameter()]
+       [int]$Occurrence = 0, # Positive: from start; Negative: from back.
+
+    [Parameter()]
+    [StringComparison]$Comparison = [StringComparison]::InvariantCultureIgnoreCase
+  )
+  
+  Begin { }
+
+  Process
+  {
+    $Index   = -1
+    $Indexes = @()
+
+    if ($Occurrence -gt 0)
+    {
+      $Occurrence--
+    }
+
+    do
+    {
+      $Index = $InputObject.IndexOf($Substring, 1 + $Index, $Comparison)
+      if ($Index -ne -1)
+      {
+        $Indexes += $Index
+      }
+    } while ($Index -ne -1)
+
+    if ($null  -ne   $Indexes[$Occurrence]) {
+      $Index       = $Indexes[$Occurrence]
+      $InputObject = $InputObject.Remove($Index, $Substring.Length).Insert($Index, $NewSubstring)
+    } elseif ($Indexes.Count -gt 0) {
+      Write-Verbose "The specified occurrence does not exist."
+    } else {
+      Write-Verbose "No matching substring was found."
+    }
+
+    return $InputObject
+  }
+
+  End { }
+}
+#endregion
+
 
 
 
