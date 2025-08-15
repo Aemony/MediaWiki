@@ -149,6 +149,9 @@ enum TokenType
   Watch
 }
 
+# Unset all variables when the module is being removed from the session
+$MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = { Clear-MWSession }
+
 # Global configurations
 $script:ProgressPreference = 'SilentlyContinue' # Suppress progress bar (speeds up Invoke-WebRequest by a ton)
 
@@ -1240,7 +1243,7 @@ function Set-Substring
   .PARAMETER Comparison
     The string comparison type to use. Defaults to InvariantCultureIgnoreCase.
   .EXAMPLE
-    $ContentBlock | Set-Substring -Substring $Target -Replacement $NewSection -Occurrence -1
+    $ContentBlock | Set-Substring -Substring $Target -NewSubstring $NewSection -Occurrence -1
   .INPUTS
     String to act upon.
   .OUTPUTS
@@ -2251,9 +2254,18 @@ function Connect-MWSession
 {
   [CmdletBinding()]
   param (
+    <#
+      Main parameters
+    #>
     [switch]$Persistent,
     [switch]$Guest,
-    [switch]$Reset
+    [switch]$Reset,
+
+    <#
+      Optional parameters
+    #>
+    [string]$ApiEndpoint,
+    [switch]$Silent
   )
 
   Begin
@@ -2278,14 +2290,14 @@ function Connect-MWSession
         # Try to load the config file.
         $TempConfig = Get-Content $script:ConfigFileName -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
 
-        # Unset to force an anonymous session
-        if ($Guest)
+        # Set to force an anonymous session
+        if (-not $Guest)
         {
-          $TempConfig.Username = $null 
-          $TempConfig.Password = $null
-        } else {
           # Try to convert the hashed password. This will only work on the same machine that the config file was created on.
           $TempConfig.Password = ConvertTo-SecureString $TempConfig.Password -Key (3, 4, 2, 3, 56, 34, 254, 222, 1, 1, 2, 23, 42, 54, 33, 233, 1, 34, 2, 7, 6, 5, 35, 43) -ErrorAction Stop
+        } else {
+          $TempConfig.Username = $null 
+          $TempConfig.Password = $null
         }
       } Catch [System.Management.Automation.ItemNotFoundException], [System.ArgumentException] {
         # Handle corrupt config file
@@ -2304,22 +2316,26 @@ function Connect-MWSession
 
     if ($null -eq $TempConfig)
     {
-      if (!($APIEndpoint = Read-Host 'Type in the full URI to the API endpoint [https://www.pcgamingwiki.com/w/api.php]')) { $APIEndpoint = 'https://www.pcgamingwiki.com/w/api.php' }
-      $Split    = ($APIEndpoint -split '://')
+      if ([string]::IsNullOrWhiteSpace($ApiEndpoint) -and -not ($ApiEndpoint = Read-Host 'Type in the full URI to the API endpoint [https://www.pcgamingwiki.com/w/api.php]'))
+      { $ApiEndpoint = 'https://www.pcgamingwiki.com/w/api.php' }
+      $Split    = ($ApiEndpoint -split '://')
       $Split2   = ($Split[1] -split '/')
       $Protocol = $Split[0] + '://'
       $API      = $Split2[-1]
-      $Wiki     = $APIEndpoint -replace $Protocol, '' -replace $API, ''
+      $Wiki     = $ApiEndpoint -replace $Protocol, '' -replace $API, ''
 
-      $Username = Read-Host 'Username'
-      [SecureString]$SecurePassword = Read-Host 'Password' -AsSecureString
+      if (-not $Guest)
+      {
+        $Username = Read-Host 'Username'
+        [SecureString]$SecurePassword = Read-Host 'Password' -AsSecureString
+      }
 
       $TempConfig = @{
         Protocol  = $Protocol
         Wiki      = $Wiki
         API       = $API
         Username  = $Username
-        Password  = if ($SecurePassword.Length -eq 0) { '' } else { $SecurePassword | ConvertFrom-SecureString -Key (3, 4, 2, 3, 56, 34, 254, 222, 1, 1, 2, 23, 42, 54, 33, 233, 1, 34, 2, 7, 6, 5, 35, 43) }
+        Password  = if ($SecurePassword.Length -eq 0) { $null } else { $SecurePassword | ConvertFrom-SecureString -Key (3, 4, 2, 3, 56, 34, 254, 222, 1, 1, 2, 23, 42, 54, 33, 233, 1, 34, 2, 7, 6, 5, 35, 43) }
       }
 
       if ($Persistent)
@@ -2425,37 +2441,40 @@ function Connect-MWSession
     # Cache change tags
     Get-MWChangeTag | Out-Null
 
-    Write-Host "Welcome " -ForegroundColor Yellow -NoNewline
-
-    if ($script:Cache.UserInfo.LatestContribution)
-    { Write-Host "back " -ForegroundColor Yellow -NoNewline }
-
-    Write-Host $script:Cache.UserInfo.Name -ForegroundColor DarkGreen -NoNewline
-    Write-Host "!" -ForegroundColor Yellow -NoNewline
-
-    if ($script:Cache.UserInfo.LatestContribution)
+    if (-not $Silent)
     {
-      Write-Host " Your latest contribution was on " -ForegroundColor Yellow -NoNewline
-      Write-Host "$([datetime]$script:Cache.UserInfo.LatestContribution)." -ForegroundColor DarkYellow -NoNewline
-    }
+      Write-Host "Welcome " -ForegroundColor Yellow -NoNewline
 
-    Write-Host # NewLine
+      if ($script:Cache.UserInfo.LatestContribution)
+      { Write-Host "back " -ForegroundColor Yellow -NoNewline }
 
-    if ($script:Cache.UserInfo.Messages)
-    {
-      Write-Host "You have "   -ForegroundColor Yellow     -NoNewline
-      Write-Host "unread"      -ForegroundColor DarkYellow -NoNewline
-      Write-Host " messages! " -ForegroundColor Yellow     -NoNewline
-    }
-    
-    if ($script:Cache.UserInfo.UnreadCount)
-    {
-      Write-Host "There are " -ForegroundColor Yellow -NoNewline
-      Write-Host $script:Cache.UserInfo.UnreadCount -ForegroundColor DarkYellow -NoNewline
-      Write-Host " unread pages on your watchlist." -ForegroundColor Yellow -NoNewline
-    }
+      Write-Host $script:Cache.UserInfo.Name -ForegroundColor DarkGreen -NoNewline
+      Write-Host "!" -ForegroundColor Yellow -NoNewline
 
-    Write-Host # NewLine
+      if ($script:Cache.UserInfo.LatestContribution)
+      {
+        Write-Host " Your latest contribution was on " -ForegroundColor Yellow -NoNewline
+        Write-Host "$([datetime]$script:Cache.UserInfo.LatestContribution)." -ForegroundColor DarkYellow -NoNewline
+      }
+
+      Write-Host # NewLine
+
+      if ($script:Cache.UserInfo.Messages)
+      {
+        Write-Host "You have "   -ForegroundColor Yellow     -NoNewline
+        Write-Host "unread"      -ForegroundColor DarkYellow -NoNewline
+        Write-Host " messages! " -ForegroundColor Yellow     -NoNewline
+      }
+      
+      if ($script:Cache.UserInfo.UnreadCount)
+      {
+        Write-Host "There are " -ForegroundColor Yellow -NoNewline
+        Write-Host $script:Cache.UserInfo.UnreadCount -ForegroundColor DarkYellow -NoNewline
+        Write-Host " unread pages on your watchlist." -ForegroundColor Yellow -NoNewline
+      }
+
+      Write-Host # NewLine
+    }
 
     $script:MWSessionBot = ($null -ne ($script:Cache.UserInfo.Groups | Where-Object { $_ -eq 'bot' }))
   }
@@ -2576,6 +2595,7 @@ function ConvertTo-MWParsedOutput
 #endregion
 
 #region Disconnect-MWSession
+Set-Alias -Name Remove-MWSession -Value Disconnect-MWSession
 function Disconnect-MWSession
 {
   [CmdletBinding()]
