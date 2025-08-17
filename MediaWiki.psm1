@@ -12,6 +12,9 @@
     Be sure to add/adjust if needed!
 #>
 
+# Required for Import-MWFile
+Add-Type -AssemblyName System.Net.Http
+
 Write-Host ""
 Write-Host "---------------------------------------------------------------------------" -ForegroundColor Yellow
 Write-Host ""
@@ -590,6 +593,11 @@ $script:PropertyNamePascal    = @{
   description                 = 'Description'
   displayname                 = 'DisplayName'
   hitcount                    = 'HitCount'
+
+  <# Upload #>
+  result                      = 'Result'
+  filekey                     = 'FileKey'
+  sessionkey                  = 'SessionKey'
 
   <# API Modules #>
   classname                   = 'ClassName'
@@ -5576,6 +5584,138 @@ function Get-MWTranscludedIn
 #>
 #endregion
 
+#region Import-MWFile
+function Import-MWFile
+{
+  <#
+  .SYNOPSIS
+    Imports a file to MediaWiki.
+
+  .DESCRIPTION
+    Imports (uploads) a file (image) to the MediaWiki stite.
+
+  .PARAMETER URL
+    String of the URL the MediaWiki server should create a file from.
+
+  .OUTPUTS
+    Array of PSObject holding the requested properties of the given users.
+  #>
+  [CmdletBinding(DefaultParameterSetName = 'Url')]
+  param
+  (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ParameterSetName = 'File', Position=0)]
+    [Parameter(Mandatory, ParameterSetName = 'Url', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [string]$Name,
+
+    [Alias('Text')]
+    [string]$Description,
+
+    [Parameter(ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
+    [string]$Comment, # Comment
+
+    [switch]$IgnoreWarnings,
+
+    <#
+      Url based upload
+    #>
+    [Parameter(Mandatory, ParameterSetName = 'Url', Position=1)]
+    [ValidateNotNullOrEmpty()]
+    [string]$Url,
+
+    <#
+      File based upload
+    #>
+    # Note that the HTTP POST must be done as a file upload (i.e. using multipart/form-data) when sending the file or chunk.
+    [Parameter(Mandatory, ParameterSetName = 'File', Position=1)]
+    [ValidateNotNullOrEmpty()]
+    [string]$File,
+
+    [string]$FileKey,
+    [switch]$Stash,
+
+    <#
+      Page stuff
+    #>
+    [ValidateScript({ Test-MWChangeTag -InputObject $PSItem })]
+    [string[]]$Tags, # Tag the edit according to one or more tags available in Special:Tags
+
+    [Watchlist]$Watchlist = [Watchlist]::Preferences,
+    
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    $Body = [ordered]@{
+      action    = 'upload'
+      filename  = $Name
+      watchlist = $Watchlist.ToString().ToLower()
+    }
+    
+    if ($Comment)
+    { $Body.comment = $Comment }
+    
+    if ($Url)
+    { $Body.url = $Url }
+    
+    if ($FileKey)
+    { $Body.filekey = $FileKey }
+    
+    if ($Stash)
+    { $Body.stash = $true } # omit outright to disable
+
+    if ($IgnoreWarnings)
+    { $Body.ignorewarnings = $true } # omit outright to disable
+
+    # Edit tags
+    $JoinedTags     = ''
+
+    if ($Tags)
+    { $JoinedTags = $Tags -join '|' }
+
+    if (-not [string]::IsNullOrEmpty($JoinedTags))
+    { $Body.tags = $JoinedTags }
+
+    $RequestParams = @{
+      Body         = $Body
+      Method       = 'POST'
+      Token        = 'CSRF'
+    }
+
+    if ($File)
+    {
+      $RequestParams.ContentType = "multipart/form-data"
+      $RequestParams.InFile      = $File
+    }
+
+    $Response = Invoke-MWApiRequest @RequestParams
+
+    if ($JSON)
+    { return $Response }
+
+    return $Response.upload | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
+  }
+
+  End { }
+}
+
+#endregion
+
 #region Invoke-MWApiContinueRequest
 # Helper function to loop over and retrieve all available results
 function Invoke-MWApiContinueRequest
@@ -5675,13 +5815,12 @@ function Invoke-MWApiRequest
     $Method,
 
     [TokenType]$Token = [TokenType]::None,
-
-    [Parameter()]
     $Uri = ($script:Config.URI),
+    [int32]$RateLimit = 60, # In seconds
 
-    # In seconds
-    [Parameter()]
-    [int32]$RateLimit = 60,
+    # Used by Import-MWFile
+    [string]$ContentType,
+    [string]$InFile,
 
     # Used by pretty much all cmdlets
     [Parameter(ParameterSetName = 'WebSession')]
@@ -5757,6 +5896,48 @@ function Invoke-MWApiRequest
         Method       = $Method
       }
 
+      if ($ContentType -eq 'multipart/form-data')
+      {
+        $multipartBoundary = [System.Guid]::NewGuid().ToString()
+        $multipartContent  = [System.Net.Http.MultipartFormDataContent]::new($multipartBoundary)
+        $ContentType       = "multipart/form-data; boundary=`"$multipartBoundary`""
+
+        # Convert $Body to $multipartContent
+        foreach ($Key in $Body.Keys)
+        {
+          $StringHeader                             = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new("form-data")
+          $StringHeader.Name                        = "`"$Key`""
+          $StringContent                            = [System.Net.Http.StringContent]::new($Body[$Key])
+          $StringContent.Headers.ContentDisposition = $StringHeader
+          $multipartContent.Add($stringContent)
+        }
+        
+        if ($InFile)
+        {
+          if (-not (Test-Path $InFile))
+          {
+            Write-Warning '-InFile does not point to a file that exists!'
+            return
+          }
+
+          # Read file
+          $fileName                               = Split-Path $InFile -Leaf
+          $fileBytes                              = [System.IO.File]::ReadAllBytes($InFile)
+          $fileEncoding                           = [System.Text.Encoding]::GetEncoding('ISO-8859-1').GetString($fileBytes)
+
+          $StringHeader                           = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new('form-data')
+          $StringHeader.Name                      = "`"file`""
+          $StringHeader.FileName                  = "`"$FileName`""
+          $fileContent                            = [System.Net.Http.StringContent]::new($fileEncoding)
+          $fileContent.Headers.ContentDisposition = $StringHeader
+          $fileContent.Headers.ContentType        = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse('application/octet-stream')
+          $multipartContent.Add($fileContent)
+        }
+
+        $RequestParams.Body = $multipartContent.ReadAsStringAsync().Result
+        #Write-Debug $Result
+      }
+
       if ($PSBoundParameters.ContainsKey('SessionVariable'))
       {
         $RequestParams   += @{
@@ -5769,6 +5950,13 @@ function Invoke-MWApiRequest
       } else {
         $RequestParams   += @{
           WebSession      = Get-MWSession
+        }
+      }
+
+      if (-not [string]::IsNullOrWhiteSpace($ContentType))
+      {
+        $RequestParams   += @{
+          ContentType     = $ContentType
         }
       }
 
