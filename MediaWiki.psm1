@@ -2302,7 +2302,7 @@ function Connect-MWSession
         if (-not $Guest)
         {
           # Try to convert the hashed password. This will only work on the same machine that the config file was created on.
-          $TempConfig.Password = ConvertTo-SecureString $TempConfig.Password -Key (3, 4, 2, 3, 56, 34, 254, 222, 1, 1, 2, 23, 42, 54, 33, 233, 1, 34, 2, 7, 6, 5, 35, 43) -ErrorAction Stop
+          $TempConfig.Password = ConvertTo-SecureString $TempConfig.Password -ErrorAction Stop
         } else {
           $TempConfig.Username = $null 
           $TempConfig.Password = $null
@@ -2343,7 +2343,7 @@ function Connect-MWSession
         Wiki      = $Wiki
         API       = $API
         Username  = $Username
-        Password  = if ($SecurePassword.Length -eq 0) { $null } else { $SecurePassword | ConvertFrom-SecureString -Key (3, 4, 2, 3, 56, 34, 254, 222, 1, 1, 2, 23, 42, 54, 33, 233, 1, 34, 2, 7, 6, 5, 35, 43) }
+        Password  = if ($SecurePassword.Length -eq 0) { $null } else { $SecurePassword | ConvertFrom-SecureString }
       }
 
       if ($Persistent)
