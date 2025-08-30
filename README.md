@@ -1,4 +1,4 @@
-# MediaWiki
+# MediaWiki PowerShell Module
 This is a PowerShell module for interfacing with a MediaWiki API endpoint that I have worked at
 on and off occasionally over the last couple of years. It was initially created to assist me in
 performing [various maintenance tasks](https://github.com/Aemony/AemonyBot) for the [PCGamingWiki](https://www.pcgamingwiki.com/) (PCGW) community project.
