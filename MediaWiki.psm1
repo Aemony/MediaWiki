@@ -12,9 +12,6 @@
     Be sure to add/adjust if needed!
 #>
 
-# Required for Import-MWFile
-Add-Type -AssemblyName System.Net.Http
-
 Write-Host ""
 Write-Host "---------------------------------------------------------------------------" -ForegroundColor Yellow
 Write-Host ""
