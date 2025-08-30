@@ -6090,7 +6090,8 @@ function Invoke-MWApiRequest
           else
           { Write-Warning 'The session has expired! Please sign in to continue, or press Ctrl + Z to abort.' }
 
-          Disconnect-MWSession
+          #Disconnect-MWSession # This will fail due to the expired session, so let us just clear the session data manually
+          Clear-MWSession
           Connect-MWSession @ReconParams
         }
 
