@@ -2376,7 +2376,6 @@ function Connect-MWSession
         $PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
       }
 
-
       $Body = [ordered]@{
         action     = 'query'
         meta       = 'tokens'
@@ -5615,7 +5614,7 @@ function Import-MWFile
     [AllowEmptyString()]
     [string]$Comment, # Comment
 
-    [switch]$IgnoreWarnings,
+    [switch]$Force,
 
     <#
       Url based upload
@@ -5642,6 +5641,11 @@ function Import-MWFile
     [string[]]$Tags, # Tag the edit according to one or more tags available in Special:Tags
 
     [Watchlist]$Watchlist = [Watchlist]::Preferences,
+
+    <#
+      Switches
+    #>
+    [switch]$FixExtension,
     
     <#
       Debug
@@ -5676,7 +5680,7 @@ function Import-MWFile
     if ($Stash)
     { $Body.stash = $true } # omit outright to disable
 
-    if ($IgnoreWarnings)
+    if ($Force)
     { $Body.ignorewarnings = $true } # omit outright to disable
 
     # Edit tags
@@ -5700,7 +5704,49 @@ function Import-MWFile
       $RequestParams.InFile      = $File
     }
 
-    $Response = Invoke-MWApiRequest @RequestParams
+    $Extensions = @{
+     'image/jpeg'  = '.jpg'
+     'image/png'   = '.png'
+    }
+
+    $Attempt    = 0 # Max three attempts before aborting
+    $Retry = $false
+    do
+    {
+      $Retry = $false
+
+      $Response = Invoke-MWApiRequest @RequestParams
+
+      if ($UploadErrors = $Response.errors)
+      {
+        if ($FixExtension)
+        {
+          foreach ($UploadError in $UploadErrors)
+          {
+            # Either the data is corrupt or the file extension and the file's MIME type don't correlate.
+            if ($UploadError.code -eq 'verification-error')
+            {
+              if ($UploadError.text -like '*does not match the detected MIME type of the file*')
+              {
+                $Mime     = $UploadError.text -replace '.*\((.*)\)\.', '$1'
+                $RightExt = $Extensions.$Mime
+                $WrongExt = ("." + $Name.Split('.')[-1])
+
+                if ($RightExt)
+                {
+                  $RequestParams.Body.filename = $RequestParams.Body.filename.Replace($WrongExt, $RightExt)
+                  Write-Warning "Retrying upload using filename $($RequestParams.Body.filename)..."
+                  $Retry = $true
+                }
+              }
+            }
+          }
+        }
+      }
+    } while ($Retry -and ++$Attempt -lt 3)
+
+    if ($Attempt -eq 3)
+    { Write-Warning 'Aborted after three failed attempt at retrying the request.' }
 
     if ($JSON)
     { return $Response }
@@ -5835,13 +5881,16 @@ function Invoke-MWApiRequest
     [switch]$NoAssert,
 
     # Used to export errors/warnings to a JSON file
-    [switch]$WriteErrorsAndWarningsToDisk
+    [switch]$WriteIssuesToDisk
   )
 
   Begin { }
 
   Process
   {
+    if ($WriteIssuesToDisk)
+    { Write-Verbose '-WriteIssuesToDisk is being used. Any issues will be written to .\error.json and .\warnings.json.'}
+
     # Insert any required token
     if ($Token -ne [TokenType]::None)
     { $Body.token = Get-MWToken -Type $Token }
@@ -5971,7 +6020,7 @@ function Invoke-MWApiRequest
         # Errors
         if ($null -ne $JsonObject.errors)
         {
-          if ($WriteErrorsAndWarningsToDisk)
+          if ($WriteIssuesToDisk)
           { $JsonObject.errors | ConvertTo-Json -Depth 100 | Out-File 'errors.json' }
 
           ForEach ($item in $JsonObject.errors)
@@ -5989,7 +6038,7 @@ function Invoke-MWApiRequest
         # Warnings
         if ($null -ne $JsonObject.warnings)
         {
-          if ($WriteErrorsAndWarningsToDisk)
+          if ($WriteIssuesToDisk)
           { $JsonObject.warnings | ConvertTo-Json -Depth 100 | Out-File 'warnings.json' }
 
           ForEach ($item in $JsonObject.warnings)
