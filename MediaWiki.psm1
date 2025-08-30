@@ -5607,12 +5607,10 @@ function Import-MWFile
     [ValidateNotNullOrEmpty()]
     [string]$Name,
 
-    [Alias('Text')]
-    [string]$Description,
-
     [Parameter(ValueFromPipelineByPropertyName)]
+    [Alias('Text, Description')]
     [AllowEmptyString()]
-    [string]$Comment, # Comment
+    [string]$Comment, # Upload comment. Also used as the initial page text for new files if text is not specified. 
 
     [switch]$Force,
 
@@ -5707,6 +5705,7 @@ function Import-MWFile
     $Extensions = @{
      'image/jpeg'  = '.jpg'
      'image/png'   = '.png'
+     'image/webp'  = '.webp'
     }
 
     $Attempt    = 0 # Max three attempts before aborting
