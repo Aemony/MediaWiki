@@ -6178,7 +6178,7 @@ function Invoke-MWApiRequest
           }
 
           if ($script:Config.Persistent)
-          { Write-Warning 'The session has expired and is automatically being refreshed...' }
+          { Write-Warning 'The session is being refreshed...' }
           else
           { Write-Warning 'The session has expired! Please sign in to continue, or press Ctrl + Z to abort.' }
 
