@@ -5791,9 +5791,17 @@ function Import-MWFile
               return
             }
 
+            if (-not (Test-Path $FilePath))
+            {
+              Write-Warning "Could not find $FilePath !"
+              return
+            }
+
+            $FilePath = Get-Item $FilePath
+
             $FuncParams = @{
               Name         = $Name
-              File         = $FilePath
+              File         = $FilePath.FullName
               FixExtension = $true
               JSON         = $JSON
             }
@@ -5820,6 +5828,9 @@ function Import-MWFile
             { $FuncParams.JSON = $JSON }
 
             $Response = Import-MWFile @FuncParams
+            
+            # Do not forget to delete the temporary file after!
+            Remove-Item -Path $FilePath.FullName -Force
           }
         }
       }
