@@ -2587,13 +2587,14 @@ function ConvertTo-MWParsedOutput
     if ($JSON)
     { return $ArrJSON }
 
-    $PSCustomObject = $ArrJSON.parse | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
+    if ($PSCustomObject = $ArrJSON.parse | ForEach-Object { ConvertFrom-HashtableToPSObject $_ })
+    {
+      # Irrelevant and confusing, as it points to the "API" page for some random reason
+      $PSCustomObject.PSObject.Properties.Remove('Name')
+      $PSCustomObject.PSObject.Properties.Remove('ID')
 
-    # Irrelevant and confusing, as it points to the "API" page for some random reason
-    $PSCustomObject.PSObject.Properties.Remove('Name')
-    $PSCustomObject.PSObject.Properties.Remove('ID')
-
-    return $PSCustomObject
+      return $PSCustomObject
+    }
   }
 }
 #endregion
@@ -4735,8 +4736,11 @@ function Get-MWPage
       }
     }
 
-    # Also attach the timestamp when the data was retrieved
-    $PSCustomObject | Add-Member -MemberType NoteProperty -Name 'ServerTimestamp' -Value $ArrJSON.curtimestamp
+    if ($PSCustomObject)
+    {
+      # Also attach the timestamp when the data was retrieved
+      $PSCustomObject | Add-Member -MemberType NoteProperty -Name 'ServerTimestamp' -Value $ArrJSON.curtimestamp
+    }
 
     return $PSCustomObject
   }
@@ -7568,7 +7572,6 @@ function Set-MWPage
     if ($Wikitext)
     { $Content = $Wikitext }
 
-    $PSCustomObject = @()
     $JoinedTags     = ''
 
     if ($Tags)
@@ -7669,7 +7672,7 @@ function Set-MWPage
     if ($JSON)
     { return $Response }
 
-    # TODO: Translate to PSCustomObject?
+    $PSCustomObject = $null
 
     if ($Page = $Response.edit)
     {
@@ -8147,7 +8150,6 @@ function Undo-MWPageEdit
     # Rollback
     else
     {
-      $PSCustomObject = @()
       $JoinedTags     = ''
 
       if ($Tags)
@@ -8191,6 +8193,8 @@ function Undo-MWPageEdit
 
       if ($JSON)
       { return $Response }
+
+      $PSCustomObject = $null
 
       if ($Page = $Response.rollback)
       {
