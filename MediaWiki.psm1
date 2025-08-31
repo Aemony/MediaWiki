@@ -5713,6 +5713,7 @@ function Import-MWFile
 
     $WarningMessages = @{
       'exists'            = 'A file with the given name already exists. If this warning is ignored, the uploaded file will replace the existing file. Use -Force to ignore this warning.'
+      'nochange'          = 'A file with the given name already exists and is exactly the same as the uploaded file.'
       'no-change'         = 'A file with the given name already exists and is exactly the same as the uploaded file.'
       'duplicateversions' = 'A file with the given name already exists and an old version of that file is exactly the same as the uploaded file.'
       'badfilename'       = 'The file name supplied is not acceptable on this wiki, for instance because it contains forbidden characters.'
