@@ -5612,8 +5612,6 @@ function Import-MWFile
     [AllowEmptyString()]
     [string]$Comment, # Upload comment. Also used as the initial page text for new files if text is not specified. 
 
-    [switch]$Force,
-
     <#
       Url based upload
     #>
@@ -5643,7 +5641,8 @@ function Import-MWFile
     <#
       Switches
     #>
-    [switch]$FixExtension,
+    [switch]$FixExtension, # Fix file MIME/extension mismatch automatically
+    [switch]$Force,        # Ignore warnings
     
     <#
       Debug
@@ -5708,6 +5707,16 @@ function Import-MWFile
      'image/webp'  = '.webp'
     }
 
+    $WarningMessages = @{
+      'exists'            = 'A file with the given name already exists. If this warning is ignored, the uploaded file will replace the existing file. Use -Force to ignore this warning.'
+      'no-change'         = 'A file with the given name already exists and is exactly the same as the uploaded file.'
+      'duplicateversions' = 'A file with the given name already exists and an old version of that file is exactly the same as the uploaded file.'
+      'badfilename'       = 'The file name supplied is not acceptable on this wiki, for instance because it contains forbidden characters.'
+      'was-deleted'       = 'A file with the given name used to exist but has been deleted. Use -Force to ignore this warning.'
+      'duplicate'         = 'The uploaded file exists under a different (or the same) name. Uploading a duplicate may be undesirable. Use -Force to ignore this warning.'
+      'duplicate-archive' = 'The uploaded used to exist under a different (or the same) name but has been deleted. This may indicate that the file is inappropriate and should not be uploaded. Use -Force to ignore this warning.'
+    }
+
     $Attempt    = 0 # Max three attempts before aborting
     $Retry = $false
     do
@@ -5716,16 +5725,32 @@ function Import-MWFile
 
       $Response = Invoke-MWApiRequest @RequestParams
 
+      if (-not $Force)
+      {
+        if ($Warnings = $Response.upload.warnings)
+        {
+          foreach ($Key in $Warnings.Keys)
+          {
+            if ($WarningMessages.Keys -contains $Key)
+            { $Message = $WarningMessages.$Key }
+            else
+            { $Message = $Warnings.$Key }
+
+            Write-Warning "[$Key] $Message"
+          }
+        }
+      }
+
       if ($UploadErrors = $Response.errors)
       {
-        if ($FixExtension)
+        foreach ($UploadError in $UploadErrors)
         {
-          foreach ($UploadError in $UploadErrors)
+          # Either the data is corrupt or the file extension and the file's MIME type don't correlate.
+          if ($UploadError.code -eq 'verification-error')
           {
-            # Either the data is corrupt or the file extension and the file's MIME type don't correlate.
-            if ($UploadError.code -eq 'verification-error')
+            if ($UploadError.text -like '*does not match the detected MIME type of the file*')
             {
-              if ($UploadError.text -like '*does not match the detected MIME type of the file*')
+              if ($FixExtension)
               {
                 $Mime     = $UploadError.text -replace '.*\((.*)\)\.', '$1'
                 $RightExt = $Extensions.$Mime
@@ -5739,6 +5764,62 @@ function Import-MWFile
                 }
               }
             }
+          }
+
+          # URL based upload is disabled
+          if ($UploadError.code -eq 'copyuploaddisabled')
+          {
+            Write-Host "URL based upload is disabled, attempting a local workaround..."
+            $StatusCode = 200
+            $Link       = $Url
+            $ext        = $Link.Split('.')[-1]
+
+            if ([string]::IsNullOrWhiteSpace($ext))
+            { $ext = '.tmp' }
+
+            $FilePath = "$env:Temp\mw-$(Get-Random).$ext"
+            try {
+              Write-Verbose "Downloading $Link..."
+              Invoke-WebRequest -Uri $Link -Method GET -UseBasicParsing -DisableKeepAlive -OutFile $FilePath
+            } catch {
+              $StatusCode = $_.Exception.response.StatusCode.value__
+            }
+
+            if ($StatusCode -ne 200)
+            {
+              Write-Warning "Failed to download $Link !"
+              return
+            }
+
+            $FuncParams = @{
+              Name         = $Name
+              File         = $FilePath
+              FixExtension = $true
+              JSON         = $JSON
+            }
+
+            if ($Comment)
+            { $FuncParams.Comment = $Comment }
+
+            if ($Force)
+            { $FuncParams.Force = $Force }
+
+            if ($FileKey)
+            { $FuncParams.FileKey = $FileKey }
+
+            if ($Stash)
+            { $FuncParams.Stash = $Stash }
+
+            if ($Watchlist)
+            { $FuncParams.Watchlist = $Watchlist }
+
+            if ($Tags)
+            { $FuncParams.Tags = $Tags }
+
+            if ($JSON)
+            { $FuncParams.JSON = $JSON }
+
+            $Response = Import-MWFile @FuncParams
           }
         }
       }
