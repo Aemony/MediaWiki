@@ -6032,10 +6032,11 @@ function Invoke-MWApiRequest
       if ($null -ne $Body.token -and $Body.token -ne (Get-MWToken -Type $Token))
       { $Body.token = (Get-MWToken -Type $Token) }
 
-      $RequestParams = @{
-        Body         = $Body
-        Uri          = $Uri
-        Method       = $Method
+      $RequestParams    = @{
+        Body            = $Body
+        Uri             = $Uri
+        Method          = $Method
+        UseBasicParsing = $true
       }
 
       if ($ContentType -eq 'multipart/form-data')
