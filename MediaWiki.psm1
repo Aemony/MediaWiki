@@ -8243,6 +8243,7 @@ function Update-MWCargoTable
     [string]$Table, # The Cargo database table which to update
 
     [switch]$UpdateOnlyMissingInReplacementTable,
+    [switch]$Random,
     
     <#
       Debug
@@ -8294,6 +8295,9 @@ function Update-MWCargoTable
     $Parameters       = @{
       JSON            = $JSON
     }
+
+    if ($Random)
+    { $Pages = $Pages | Sort-Object { Get-Random } }
 
     ForEach ($Page in $Pages)
     {
