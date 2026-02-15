@@ -8265,7 +8265,8 @@ function Update-MWCargoTable
 
     if ($UpdateOnlyMissingInReplacementTable)
     {
-      $ReplacementTable = Get-MWCargoQuery -Tables ($Table + '__NEXT') -ResultSize Unlimited # | Select-Object -Unique
+      # Note that DISTINCT does not work in Cargo, so in most cases you must use "group by" to eliminate duplicates.
+      $ReplacementTable = Get-MWCargoQuery -Tables ($Table + '__NEXT') -ResultSize Unlimited -GroupBy '_pageID,_pageName,_pageNamespace'
 
       if ($null -eq $ReplacementTable)
       {
@@ -8274,7 +8275,8 @@ function Update-MWCargoTable
       }
     }
 
-    $Pages = Get-MWCargoQuery -Tables $Table -ResultSize Unlimited # | Select-Object -Unique
+    # Note that DISTINCT does not work in Cargo, so in most cases you must use "group by" to eliminate duplicates.
+    $Pages = Get-MWCargoQuery -Tables $Table -ResultSize Unlimited -GroupBy '_pageID,_pageName,_pageNamespace'
 
     if ($null -eq $Pages)
     {
