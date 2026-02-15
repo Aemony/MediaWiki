@@ -4012,7 +4012,6 @@ function Get-MWEventLog
     [string]$Start        = $null, # Timestamp to start enumerating from
     [string]$End          = $null, # Timestamp to stop enumerating from
 
-    [switch]$LatestRevision,       # include only the latest revision
     [switch]$Ascending,            # newer; List oldest first
     [switch]$Descending,           # older; List newest first (default)
 
