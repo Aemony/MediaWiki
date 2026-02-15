@@ -3988,6 +3988,217 @@ function Get-MWEmbeddedIn
 }
 #endregion
 
+#region Get-MWEventLog
+# https://www.mediawiki.org/wiki/API:Logevents
+# Very useful for bots!
+function Get-MWEventLog
+{
+  [CmdletBinding()]
+  param (
+    # Comma-separated list of additional properties to include: comment, details, ids, parsedcomment, tags, timestamp, title, type, user, userid
+    [ValidateSet('*', 'Comment', 'Details', 'IDs', 'ParsedComment', 'Tags', 'Timestamp', 'Title', 'Type', 'User', 'UserID')]
+    [string[]]$Properties =  @('IDs', 'Title', 'Type', 'User', 'Timestamp', 'Comment', 'Details'),
+
+    # Based on PCGW right now; should be dynamic.
+    [ValidateSet('Block', 'Cargo', 'ContentModel', 'Create', 'Delete', 'Import', 'InterWiki', 'ManageTags', 'Merge', 'Move', 'NewUsers', 'Patrol', 'Protect', 'RenameUser', 'Rights', 'SpamBlacklist', 'Suppress', 'Tag', 'Thanks', 'Upload', 'UserMerge')]
+    [string]$Type         = $null, # Filter log entries to only the specified type.
+
+    # Should use ValidateSet as well; should be dynamic.
+    [string]$Action       = $null, # Filter log actions to only this action. Overrides -Type.
+    
+    <#
+      Sorting
+    #>
+    [string]$Start        = $null, # Timestamp to start enumerating from
+    [string]$End          = $null, # Timestamp to stop enumerating from
+
+    [switch]$LatestRevision,       # include only the latest revision
+    [switch]$Ascending,            # newer; List oldest first
+    [switch]$Descending,           # older; List newest first (default)
+
+    <#
+      Filtering
+    #>
+    [string[]]$LogID,              # Filter entries to those matching the given log ID(s).
+    [string]$User,                 # Filter entries to those made by the given user.
+    [string]$PageName,             # Filter entries to those related to a page.
+    [ValidateScript({ Test-MWNamespace -InputObject $PSItem -AllowWildcard })]
+    [string[]]$Namespace,          # Filter to those in the given namespace.
+    [string]$Tag,                  # Only list event entries tagged with this tag.
+
+    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
+    [string]$ResultSize = 1000,
+    
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin
+  {
+    $ArrJSON = @()
+  }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    if ($ResultSize -eq 'Unlimited')
+    { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
+
+    $Body = [ordered]@{
+      action        = 'query'
+      list          = 'logevents'
+      lelimit       = 'max'
+      ledir         = 'older'
+    }
+
+    if (-not [string]::IsNullOrEmpty($Properties))
+    {
+      # Convert everything to lowercase
+      $Properties = $Properties.ToLower()
+
+      # Does it include a wildcard?
+      if ($Properties -contains '*')
+      { $Properties = @('comment', 'details', 'ids', 'parsedcomment', 'tags', 'timestamp', 'title', 'type', 'user', 'userid') }
+    }
+
+    if (-not [string]::IsNullOrEmpty($Properties))
+    { $Body.leprop = ($Properties -join '|') }
+
+    # Action > Type
+    if (-not [string]::IsNullOrEmpty($Action))
+    { $Body.leaction = $Action.ToLower() }
+    elseif (-not [string]::IsNullOrEmpty($Type))
+    { $Body.letype   = $Type.ToLower() }
+
+    if ($PSBoundParameters.ContainsKey('Start'))
+    {
+      $Body.lestart = $Start
+
+      Write-Verbose "Using $Start as the start of the enumeration"
+    }
+
+    if ($PSBoundParameters.ContainsKey('End'))
+    {
+      $Body.leend = $End
+
+      Write-Verbose "Using $End as the end of the enumeration"
+    }
+
+    if ($Ascending)
+    { $Body.ledir = 'newer' }
+    elseif ($Descending)
+    { $Body.ledir = 'older' }
+
+    if (-not [string]::IsNullOrEmpty($LogID))
+    { $Body.leids = ($LogID -join '|') }
+
+    if (-not [string]::IsNullOrEmpty($User))
+    { $Body.leuser = $User }
+
+    if (-not [string]::IsNullOrEmpty($PageName))
+    { $Body.letitle = $PageName }
+
+    $_Namespace = ConvertTo-MWNamespaceID $Namespace
+
+    if (-not [string]::IsNullOrEmpty($_Namespace))
+    { $Body.lenamespace = $_Namespace }
+
+    if (-not [string]::IsNullOrEmpty($Tag))
+    { $Body.letag = $Tag }
+
+    $ArrJSON += Invoke-MWApiContinueRequest -Body $Body -Method GET -ResultSize $ResultSize -Node1 'logevents'
+  }
+
+  End {
+    if ($JSON)
+    { return $ArrJSON }
+
+    $ArrPSCustomObject = @()
+    if ($Events = $ArrJSON.query.logevents | Select-Object -First $ResultSize)
+    {
+      ForEach ($Event in $Events)
+      {
+        $ObjectProperties = [ordered]@{}
+
+        # LogID
+        if ($null -ne $Event.logid)
+        { $ObjectProperties.LogID = $Event.logid }
+
+        # Page Name (default; title)
+        if ($null -ne $Event.title)
+        { $ObjectProperties.Name = $Event.title }
+
+        # Page ID (default; pageid)
+        if ($null -ne $Event.pageid)
+        { $ObjectProperties.ID = $Event.pageid }
+
+        # Namespace (default; ns)
+        if ($null -ne $Event.ns)
+        { $ObjectProperties.Namespace = (Get-MWNamespace -NamespaceID $Event.ns).Name }
+
+        # Log Page (default; logpage)
+        if ($null -ne $Event.logpage)
+        { $ObjectProperties.LogPageID = $Event.logpage }
+
+        # Revision ID (default; revid)
+        if ($null -ne $Event.revid)
+        { $ObjectProperties.RevisionID = $Event.revid }
+
+        # Params (???)
+        if ($null -ne $Event.params)
+        { $ObjectProperties.Parameters = $Event.params }
+
+        # Type
+        if ($null -ne $Event.type)
+        { $ObjectProperties.Type = $Event.type }
+
+        # Action
+        if ($null -ne $Event.action)
+        { $ObjectProperties.Action = $Event.action }
+
+        # User (user)
+        if ($null -ne $Event.user)
+        { $ObjectProperties.User = $Event.user }
+
+        # User ID (userid)
+        if ($null -ne $Event.userid)
+        { $ObjectProperties.UserID = $Event.userid }
+
+        # Temp (???)
+        if ($null -ne $Event.temp)
+        { $ObjectProperties.TemporaryUser = $true } # Temporary User?
+
+        # Timestamp (default; timestamp)
+        if ($null -ne $Event.timestamp)
+        { $ObjectProperties.Timestamp = $Event.timestamp }
+
+        # Comment (comment)
+        if ($null -ne $Event.comment)
+        { $ObjectProperties.Comment = $Event.comment }
+
+        # Parsed comment (parsedcomment)
+        if ($null -ne $Event.parsedcomment)
+        { $ObjectProperties.ParsedComment = $Event.parsedcomment }
+
+        # Tags (tags), e.g. 'mw-blank' indicates a blanking change. See Special:Tags for a full list.
+        if ($null -ne $Event.tags)
+        { $ObjectProperties.Tags = $Event.tags }
+
+        $ArrPSCustomObject += New-Object PSObject -Property $ObjectProperties
+      }
+    }
+    return $ArrPSCustomObject
+  }
+}
+#endregion
+
 #region Get-MWFileInfo
 function Get-MWFileInfo
 {
@@ -8286,9 +8497,7 @@ function Update-MWCargoTable
     }
 
     if ($UpdateOnlyMissingInReplacementTable)
-    {
-      $Pages = Compare-Object -ReferenceObject $ReplacementTable -DifferenceObject $Pages | Where-Object SideIndicator -eq '=>' | Select-Object -Expand InputObject
-    }
+    { $Pages = Compare-Object -ReferenceObject $ReplacementTable -DifferenceObject $Pages | Where-Object SideIndicator -eq '=>' | Select-Object -Expand InputObject }
 
     Write-Verbose "$($Pages.Count) pages will be purged."
 
@@ -8300,9 +8509,7 @@ function Update-MWCargoTable
     { $Pages = $Pages | Sort-Object { Get-Random } }
 
     ForEach ($Page in $Pages)
-    {
-      $ArrPSCustomObject += Update-MWPage -ID $Page.ID -Force
-    }
+    { $ArrPSCustomObject += Update-MWPage -ID $Page.ID -Force }
   }
 
   End
