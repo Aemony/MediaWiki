@@ -8233,6 +8233,79 @@ function Undo-MWPageEdit
 }
 #endregion
 
+#region Update-MWCargoTable
+function Update-MWCargoTable
+{
+  [CmdletBinding()]
+  param
+  (
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
+    [string]$Table, # The Cargo database table which to update
+
+    [switch]$UpdateOnlyMissingInReplacementTable,
+    
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin
+  {
+    $ArrPSCustomObject = @()
+  }
+
+  Process
+  {
+    if ($null -eq $script:Config.URI)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    if ($UpdateOnlyMissingInReplacementTable)
+    {
+      $ReplacementTable = Get-MWCargoQuery -Tables ($Table + '__NEXT') -ResultSize Unlimited # | Select-Object -Unique
+
+      if ($null -eq $ReplacementTable)
+      {
+        Write-Warning "No replacement table have been created!"
+        return $null
+      }
+    }
+
+    $Pages = Get-MWCargoQuery -Tables $Table -ResultSize Unlimited # | Select-Object -Unique
+
+    if ($null -eq $Pages)
+    {
+      Write-Warning 'The specified Cargo table could not be found or does not contain any rows.'
+      return $null
+    }
+
+    if ($UpdateOnlyMissingInReplacementTable)
+    {
+      $Pages = Compare-Object -ReferenceObject $ReplacementTable -DifferenceObject $Pages | Where-Object SideIndicator -eq '=>' | Select-Object -Expand InputObject
+    }
+
+    Write-Verbose "$($Pages.Count) pages will be purged."
+
+    $Parameters       = @{
+      JSON            = $JSON
+    }
+
+    ForEach ($Page in $Pages)
+    {
+      $ArrPSCustomObject += Update-MWPage -ID $Page.ID -Force
+    }
+  }
+
+  End
+  {
+    return $ArrPSCustomObject
+  }
+}
+#endregion
+
 #region Update-MWPage
 function Update-MWPage
 {
