@@ -4076,18 +4076,28 @@ function Get-MWEventLog
     elseif (-not [string]::IsNullOrEmpty($Type))
     { $Body.letype   = $Type.ToLower() }
 
-    if ($PSBoundParameters.ContainsKey('Start'))
+    if (-not [string]::IsNullOrWhiteSpace($Start))
     {
-      $Body.lestart = $Start
-
-      Write-Verbose "Using $Start as the start of the enumeration"
+      $StartTime = $null
+      if ($Start -eq 'now')
+      {
+        $StartTime = (Get-Date)
+      } else {
+        $StartTime = [DateTime]$Start
+      }
+      $Body.lestart = (Get-Date ($StartTime).ToUniversalTime() -UFormat '+%Y-%m-%dT%H:%M:%SZ')
     }
 
-    if ($PSBoundParameters.ContainsKey('End'))
+    if (-not [string]::IsNullOrWhiteSpace($End))
     {
-      $Body.leend = $End
-
-      Write-Verbose "Using $End as the end of the enumeration"
+      $EndTime = $null
+      if ($End -eq 'now')
+      {
+        $EndTime = (Get-Date)
+      } else {
+        $EndTime = [DateTime]$End
+      }
+      $Body.leend = (Get-Date ($EndTime).ToUniversalTime() -UFormat '+%Y-%m-%dT%H:%M:%SZ')
     }
 
     if ($Ascending)
