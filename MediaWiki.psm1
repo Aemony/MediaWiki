@@ -1012,6 +1012,45 @@ function ConvertTo-MWNamespaceID
 }
 #endregion
 
+#region ConvertTo-MWTimeFormat
+function ConvertTo-MWTimeFormat
+{
+<#
+  .SYNOPSIS
+    Helper function used to convert a timestamp to a compatible format.
+  .DESCRIPTION
+    The input object is assumed to be UTC.
+  .PARAMETER InputObject
+    An input value in a PowerShell supported time format, in UTC time.
+  .EXAMPLE
+  'now' | ConvertTo-MWTimeFormat
+  .EXAMPLE
+  (ConvertTo-MWTimeFormat (Get-Date).AddHours(-4).ToUniversalTime())
+  .EXAMPLE
+  (Get-Date).AddHours(-2).ToUniversalTime() | ConvertTo-MWTimeFormat
+#>
+  [CmdletBinding()]
+  param (
+    [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+    $InputObject
+  )
+
+  if ($null -eq $InputObject)
+  {
+    throw ('The argument "' + $InputObject + '" is not a proper time format. Supply a proper time format and then try the command again.')
+  }
+
+  $TimeObject = $null
+  if ($InputObject -eq 'now') {
+    $TimeObject = (Get-Date).ToUniversalTime()
+  } else {
+    $TimeObject = $InputObject
+  }
+
+  return (Get-Date ($TimeObject) -UFormat '+%Y-%m-%dT%H:%M:%SZ')
+}
+#endregion
+
 #region Rename-PropertyName
 function Rename-PropertyName
 {
@@ -2772,24 +2811,10 @@ function Find-MWFile
     if ($PSCmdlet.ParameterSetName -like "BetweenTimestamp*")
     {
       if (-not [string]::IsNullOrWhiteSpace($Start))
-      {
-        if ($Start -eq 'now')
-        { $Start = (Get-Date) }
-        else
-        { $Start = [DateTime]$Start }
-        
-        $Body.aistart = (Get-Date ($Start).ToUniversalTime() -UFormat '+%Y-%m-%dT%H:%M:%SZ')
-      }
+      { $Body.aistart = $Start }
 
       if (-not [string]::IsNullOrWhiteSpace($End))
-      {
-        if ($End -eq 'now')
-        { $End = (Get-Date) }
-        else
-        { $End = [DateTime]$End }
-
-        $Body.aiend = (Get-Date ($End).ToUniversalTime() -UFormat '+%Y-%m-%dT%H:%M:%SZ')
-      }
+      { $Body.aiend   = $End }
 
       # BetweenTimestampUser
       if (-not [string]::IsNullOrWhiteSpace($User))
@@ -3663,22 +3688,11 @@ function Get-MWCategoryMember
     # BetweenTimestamp
     $Start = $PSBoundParameters['Start']
     $End   = $PSBoundParameters['End']
-    if ($PSBoundParameters.ContainsKey('Start'))
-    {
-      if ($Start -eq 'now')
-      { $Start = (Get-Date) } else {
-        $Start = [DateTime]$Start
-      }
-      $Body.cmstart = (Get-Date ($Start).ToUniversalTime() -UFormat '+%Y-%m-%dT%H:%M:%SZ')
-    }
-    if ($PSBoundParameters.ContainsKey('End'))
-    {
-      if ($End -eq 'now')
-      { $End = (Get-Date) } else {
-        $End = [DateTime]$End
-      }
-      $Body.cmend = (Get-Date ($End).ToUniversalTime() -UFormat '+%Y-%m-%dT%H:%M:%SZ')
-    }
+    if (-not [string]::IsNullOrWhiteSpace($Start))
+    { $Body.cmstart = $Start }
+
+    if (-not [string]::IsNullOrWhiteSpace($End))
+    { $Body.cmend   = $End }
 
     # Start/End Hex SortKey
     $StartHexSortKey = $PSBoundParameters['StartHexSortKey']
@@ -4077,28 +4091,10 @@ function Get-MWEventLog
     { $Body.letype   = $Type.ToLower() }
 
     if (-not [string]::IsNullOrWhiteSpace($Start))
-    {
-      $StartTime = $null
-      if ($Start -eq 'now')
-      {
-        $StartTime = (Get-Date)
-      } else {
-        $StartTime = [DateTime]$Start
-      }
-      $Body.lestart = (Get-Date ($StartTime).ToUniversalTime() -UFormat '+%Y-%m-%dT%H:%M:%SZ')
-    }
+    { $Body.lestart = $Start }
 
     if (-not [string]::IsNullOrWhiteSpace($End))
-    {
-      $EndTime = $null
-      if ($End -eq 'now')
-      {
-        $EndTime = (Get-Date)
-      } else {
-        $EndTime = [DateTime]$End
-      }
-      $Body.leend = (Get-Date ($EndTime).ToUniversalTime() -UFormat '+%Y-%m-%dT%H:%M:%SZ')
-    }
+    { $Body.leend = $End }
 
     if ($Ascending)
     { $Body.ledir = 'newer' }
@@ -4498,19 +4494,11 @@ function Get-MWRecentChanges
       $Body.rctype = ($Type -join '|')
     }
 
-    if ($PSBoundParameters.ContainsKey('Start'))
-    {
-      $Body.rcstart = $Start
+    if (-not [string]::IsNullOrWhiteSpace($Start))
+    { $Body.rcstart = $Start }
 
-      Write-Verbose "Using $Start as the start of the enumeration"
-    }
-
-    if ($PSBoundParameters.ContainsKey('End'))
-    {
-      $Body.rcend = $End
-
-      Write-Verbose "Using $End as the end of the enumeration"
-    }
+    if (-not [string]::IsNullOrWhiteSpace($End))
+    { $Body.rcend = $End }
 
     if ($Ascending)
     { $Body.rcdir = 'newer' }
@@ -4575,15 +4563,19 @@ function Get-MWRecentChanges
 
         # Bot (bot)
         if ($null -ne $Change.bot)
-        { $ObjectProperties.Bot = $true } # Change was done by a bot
+        { $ObjectProperties.Bot = $Change.bot } # Was change done by a bot?
 
-        # Redirect (???)
+        # Redirect (redirect)
         if ($null -ne $Change.redirect)
-        { $ObjectProperties.Redirect = $true } # Change has been redirected/is a redirect
+        { $ObjectProperties.Redirect = $Change.redirect } # Is change a redirect
 
         # Minor (minor)
         if ($null -ne $Change.minor)
-        { $ObjectProperties.Minor = $true } # Change is minor
+        { $ObjectProperties.Minor = $Change.minor } # Change is minor
+
+        # New (new)
+        if ($null -ne $Change.new)
+        { $ObjectProperties.New = $Change.new } # New page was created
 
         # Revision ID (default; revid)
         if ($null -ne $Change.revid)
