@@ -1023,11 +1023,11 @@ function ConvertTo-MWTimeFormat
   .PARAMETER InputObject
     An input value in a PowerShell supported time format, in UTC time.
   .EXAMPLE
-  'now' | ConvertTo-MWTimeFormat
+    'now' | ConvertTo-MWTimeFormat
   .EXAMPLE
-  (ConvertTo-MWTimeFormat (Get-Date).AddHours(-4).ToUniversalTime())
+    (ConvertTo-MWTimeFormat (Get-Date).AddHours(-4).ToUniversalTime())
   .EXAMPLE
-  (Get-Date).AddHours(-2).ToUniversalTime() | ConvertTo-MWTimeFormat
+    (Get-Date).AddHours(-2).ToUniversalTime() | ConvertTo-MWTimeFormat
 #>
   [CmdletBinding()]
   param (
@@ -1080,6 +1080,112 @@ function Rename-PropertyName
 
   return $InputObject
 }
+#endregion
+
+#region Set-Template/Parameter
+
+  function RegexEscape($UnescapedString)
+  { return [regex]::Escape($UnescapedString).Replace('/', '\/') }
+
+  function Set-MWTemplateValue
+  {
+<#
+  .SYNOPSIS
+    Helper function used to set the value of a template to the specified value
+  .DESCRIPTION
+    When used to validate a [string] parameter, the input object will only be allowed if it
+    matches a positive namespace ID or name registered on the MediaWiki site.
+  .PARAMETER InputObject
+    An object to perform the validation on.
+  .EXAMPLE
+#>
+    param (
+      [Parameter(Mandatory, Position=0)]
+      [string]$Template,
+
+      [Parameter(Mandatory, Position=1)]
+      [AllowEmptyString()]
+      [string]$Value,
+
+      [Parameter(Mandatory, ValueFromPipeline)]
+      [string]$Wikitext
+    )
+    process
+    {
+      if (-not [string]::IsNullOrWhiteSpace($Value))
+      { $Value += ' ' }
+
+      return ($Wikitext -replace ('(?m)^\{\{(' + (RegexEscape($Template)) + '\s*)\|.*\}\}$'), "{{`$1| $Value}}")
+    }
+  }
+
+  function SetParameterValue
+  {
+    param (
+      [Parameter(Mandatory, Position=0)]
+      [string]$Parameter,
+
+      [Parameter(Mandatory, Position=1)]
+      [AllowEmptyString()]
+      [string]$Value,
+
+      [Parameter(Mandatory, ValueFromPipeline)]
+      [string]$Wikitext
+    )
+    process { return $Wikitext -replace ('(?m)^(\|\s*' + (RegexEscape($Parameter)) + '\s*=).*$'), "`$1 $Value" }
+  }
+
+# TODO: Add support for adding the parameter?
+# TODO: Add support for replacing the parameter of all found matches?
+  function Set-MWTemplateParameterValue
+  {
+<#
+  .SYNOPSIS
+    Helper function used to set the value of a template parameter to the specified value
+  .DESCRIPTION
+    Used with a given wikitext to replace the value of the specified parameter and template with a new value.
+    Note that this requires the parameter to already be included within the given wikitext.
+    Only replaces the first occurence found!!
+  .PARAMETER Template
+    The template for which the parameter belongs.
+  .PARAMETER Parameter
+    The parameter to replace the value of.
+  .PARAMETER Value
+    The new value to set.
+  .PARAMETER Wikitext
+    The wikitext to work with.
+  .EXAMPLE
+    $Page.Wikitext | Set-MWTemplateParameterValue 'Infobox game' -Parameter 'steam appid' -Value '70'
+#>
+    param (
+      [Parameter(Mandatory, Position=0)]
+      [string]$Template,
+
+      [Parameter(Mandatory, Position=1)]
+      [string]$Parameter,
+
+      [Parameter(Mandatory, Position=2)]
+      [AllowEmptyString()]
+      [string]$Value,
+
+      [Parameter(Mandatory, ValueFromPipeline)]
+      [string]$Wikitext
+    )
+    
+    process
+    {
+      if ($Wikitext -match "(?s){{$Template(.*?)\n\n={1,6}")
+      {
+        $TemplateBody = $Matches[1].Trim()
+        $TemplateRepl = $TemplateBody | SetParameterValue $Parameter -Value $Value
+        #Write-Verbose "Performing change on '$Template':`nOrg: $TemplateBody`nNew: $TemplateRepl"
+        return $Wikitext.Replace($TemplateBody, $TemplateRepl)
+      }
+
+      return $Wikitext
+    }
+  }
+
 #endregion
 
 #region Test-MWChangeTag
