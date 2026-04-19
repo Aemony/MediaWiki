@@ -159,7 +159,7 @@ $script:ProgressPreference = 'SilentlyContinue' # Suppress progress bar (speeds 
 $global:MWSession
 
 # Script variable to indicate the location of the saved config file
-$script:ConfigFileName = $env:LOCALAPPDATA + '\PowerShell\MediaWiki\config.json'
+$script:ConfigFileName   = $env:LOCALAPPDATA + '\PowerShell\MediaWiki\config.json'
 
 # Script variables used internally during runtime
 $script:MWSessionGuest = $false
@@ -173,10 +173,10 @@ $script:MWTokens       = @{
   Watch                = $null
 }
 $script:Config         = @{
-  Protocol             = $null
+  BaseUri              = $null
   Wiki                 = $null
   API                  = $null
-  URI                  = $null
+  AuthType             = $null
   Persistent           = $false
 }
 $script:Cache          = @{
@@ -1622,7 +1622,7 @@ function Add-MWPage
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -1847,7 +1847,7 @@ function Add-MWSection
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -2044,7 +2044,7 @@ function Clear-MWPage
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -2243,7 +2243,7 @@ function Clear-MWSection
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -2381,10 +2381,10 @@ function Clear-MWSession
     }
 
     $script:Config         = @{
-      Protocol             = $null
+      BaseUri              = $null
       Wiki                 = $null
       API                  = $null
-      URI                  = $null
+      AuthType             = $null
       Persistent           = $false
     }
 
@@ -2402,7 +2402,7 @@ function Clear-MWSession
 #region Connect-MWSession
 function Connect-MWSession
 {
-  [CmdletBinding()]
+  [CmdletBinding(DefaultParameterSetName = 'Login')]
   param (
     <#
       Main parameters
@@ -2410,6 +2410,19 @@ function Connect-MWSession
     [switch]$Persistent,
     [switch]$Guest,
     [switch]$Reset,
+
+    <#
+      Login method
+    #>
+    # Login (Bot passwords)
+    # Most supported
+    [Parameter(ParameterSetName = 'Login')]
+    [switch]$Login,
+
+    # Client Login (MediaWiki recommended).
+    # WIP / Unfinished (no redirect support!)
+    [Parameter(ParameterSetName = 'ClientLogin')]
+    [switch]$ClientLogin,
 
     <#
       Optional parameters
@@ -2466,26 +2479,41 @@ function Connect-MWSession
 
     if ($null -eq $TempConfig)
     {
-      if ([string]::IsNullOrWhiteSpace($ApiEndpoint) -and -not ($ApiEndpoint = Read-Host 'Type in the full URI to the API endpoint [https://www.pcgamingwiki.com/w/api.php]'))
-      { $ApiEndpoint = 'https://www.pcgamingwiki.com/w/api.php' }
-      $Split    = ($ApiEndpoint -split '://')
-      $Split2   = ($Split[1] -split '/')
-      $Protocol = $Split[0] + '://'
-      $API      = $Split2[-1]
-      $Wiki     = $ApiEndpoint -replace $Protocol, '' -replace $API, ''
+      if ([string]::IsNullOrWhiteSpace($BaseUri) -and -not ($BaseUri = Read-Host 'Type in the full URI to the wiki [https://www.pcgamingwiki.com/wiki/]'))
+      { $BaseUri = 'https://www.pcgamingwiki.com/wiki/' }
+
+      # Normalize the string
+      $SubstringIndex = $BaseUri.LastIndexOf("/w/api.php")
+      if ($SubstringIndex -gt 0)
+      {
+        $BaseUri = $BaseUri.Substring(0, $SubstringIndex)
+      }
+
+      $SubstringIndex = $BaseUri.LastIndexOf("/wiki/")
+      if ($SubstringIndex -gt 0)
+      {
+        $BaseUri = $BaseUri.Substring(0, $SubstringIndex)
+      }
+      # Done normalizing the string
 
       if (-not $Guest)
       {
+        do
+        {
+          $AuthType = Read-Host 'Login method (clientlogin, login) [login]'
+        } while ($AuthType -NotIn @('clientlogin', 'login'))
+
         $Username = Read-Host 'Username'
         [SecureString]$SecurePassword = Read-Host 'Password' -AsSecureString
       }
 
       $TempConfig = @{
-        Protocol  = $Protocol
-        Wiki      = $Wiki
-        API       = $API
+        BaseUri   = $BaseUri
+        Wiki      = $BaseUri + '/wiki/'
+        API       = $BaseUri + '/w/api.php'
         Username  = $Username
         Password  = if ($SecurePassword.Length -eq 0) { $null } else { $SecurePassword | ConvertFrom-SecureString }
+        AuthType  = $AuthType
       }
 
       if ($Persistent)
@@ -2503,11 +2531,11 @@ function Connect-MWSession
     }
 
     $script:Config = @{
-      Protocol     = $TempConfig.Protocol
-      Wiki         = $TempConfig.Wiki
-      API          = $TempConfig.API
-      URI          = $TempConfig.Protocol + $TempConfig.Wiki + $TempConfig.API
-      Persistent   = $Persistent
+      BaseUri      = $TempConfig.BaseUri  # https://domain.TLD
+      Wiki         = $TempConfig.Wiki     # https://domain.TLD/wiki/
+      API          = $TempConfig.API      # https://domain.TLD/w/api.php
+      AuthType     = $TempConfig.AuthType # clientlogin, login
+      Persistent   = $Persistent          # $true, $false
     }
 
     # Authenticated login
@@ -2531,19 +2559,44 @@ function Connect-MWSession
 
       if ($Response)
       {
-        $Body = [ordered]@{
-          action     = 'login'
-          lgname     = $TempConfig.Username
-          lgpassword = $PlainPassword
-          lgtoken    = $Response.query.tokens.logintoken
+        # Most supported by the module (recommended)
+        # Bot password
+        if ($script:Config.AuthType -eq 'login')
+        {
+          $Body = [ordered]@{
+            action         = 'login'
+            lgname         = $TempConfig.Username
+            lgpassword     = $PlainPassword
+            lgtoken        = $Response.query.tokens.logintoken
+          }
+
+          $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -NoAssert -WebSession $global:MWSession
+
+          if ($Response.login.result -ne 'Success')
+          { Write-Warning -Message "[$($Response.login.result)] $($Response.login.reason)" }
+          else
+          { $script:MWSessionGuest = $false }
         }
 
-        $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -NoAssert -WebSession $global:MWSession
+        # Quite untested...
+        # Regular account password
+        elseif ($script:Config.AuthType -eq 'clientlogin')
+        {
+          $Body = [ordered]@{
+            action         = 'clientlogin'
+            username       = $TempConfig.Username
+            password       = $PlainPassword
+            logintoken     = $Response.query.tokens.logintoken
+            loginreturnurl = $script:Config.Wiki
+          }
 
-        if ($Response.login.result -ne 'Success')
-        { Write-Warning -Message "[$($Response.login.result)] $($Response.login.reason)" }
-        else
-        { $script:MWSessionGuest = $false }
+          $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -NoAssert -WebSession $global:MWSession
+
+          if ($Response.clientlogin.status -ne 'PASS')
+          { Write-Warning -Message "[$($Response.clientlogin.status)] $($Response.login.reason)" }
+          else
+          { $script:MWSessionGuest = $false }
+        }
       }
     }
     
@@ -2681,7 +2734,7 @@ function ConvertTo-MWParsedOutput
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -2762,7 +2815,7 @@ function Disconnect-MWSession
 
   End
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     { return $null }
 
     $Body    = [ordered]@{
@@ -2859,7 +2912,7 @@ function Find-MWFile
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -2979,7 +3032,7 @@ function Find-MWFileDuplicate
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -3117,7 +3170,7 @@ function Find-MWPage
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -3361,7 +3414,7 @@ function Get-MWAPIModule
 
   End
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -3416,7 +3469,7 @@ function Get-MWBackLink
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -3499,7 +3552,7 @@ function Get-MWCargoQuery
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -3731,7 +3784,7 @@ function Get-MWCategoryMember
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -3880,7 +3933,7 @@ function Get-MWChangeTag
 
   End
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -3949,7 +4002,7 @@ function Get-MWCurrentUser
 
   End
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -4063,7 +4116,7 @@ function Get-MWEmbeddedIn
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -4161,7 +4214,7 @@ function Get-MWEventLog
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -4349,7 +4402,7 @@ function Get-MWFileInfo
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -4447,7 +4500,7 @@ function Get-MWFileUsage
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -4537,7 +4590,7 @@ function Get-MWRecentChanges
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -4801,7 +4854,7 @@ function Get-MWNamespace
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -4989,7 +5042,7 @@ function Get-MWPage
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -5119,7 +5172,7 @@ function Get-MWPageInfo
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -5186,7 +5239,7 @@ function Get-MWPageLink
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -5353,7 +5406,7 @@ function Get-MWSection
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -5457,7 +5510,7 @@ function Get-MWSiteInfo
 
   End
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -5556,7 +5609,7 @@ function Get-MWToken
 
   End
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -5631,7 +5684,7 @@ function Get-MWUnreadNotifications
 
   End
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -5746,7 +5799,7 @@ function Get-MWUser
 
   End
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -5817,7 +5870,7 @@ function Get-MWTranscludedIn
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -5975,7 +6028,7 @@ function Import-MWFile
   Begin { }
 
   Process {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -6194,7 +6247,7 @@ function Invoke-MWApiContinueRequest
     # And evidently we were wrong... :O
     [string]$Node2 = '',
 
-    $Uri = ($script:Config.URI)
+    $Uri = ($script:Config.API)
   )
 
   Begin
@@ -6272,7 +6325,7 @@ function Invoke-MWApiRequest
     $Method,
 
     [TokenType]$Token = [TokenType]::None,
-    $Uri = ($script:Config.URI),
+    $Uri = ($script:Config.API),
     [int32]$RateLimit = 60, # In seconds
 
     # Used by Import-MWFile
@@ -6567,7 +6620,7 @@ function Move-MWPage
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -6727,7 +6780,7 @@ function New-MWPage
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -6921,7 +6974,7 @@ function New-MWSection
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -7040,7 +7093,7 @@ function Remove-MWPage
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -7089,6 +7142,157 @@ function Remove-MWPage
     }
     return $ArrPSCustomObject
   }
+}
+#endregion
+
+#region Remove-MWUser
+# WIP, uses Special:UserMerge (aka Extension:UserMerge)
+# REQUIRES Connect-MWSessionCL (or does it?)
+function Remove-MWUser
+{
+  [CmdletBinding(DefaultParameterSetName = 'Username')]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'Username', Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('Identity')]
+    [string]$Username,
+
+    #[Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'UserID', Position=0)]
+    #[Alias('UserID')]
+    #[int]$ID,
+
+    <#
+      Debug
+    #>
+    [switch]$PassThru
+  )
+
+  Begin
+  { }
+
+  Process
+  {
+    if ($null -eq $script:Config.API)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    $Body = [ordered]@{
+      wpolduser      = $Username
+      wpnewuser      = 'Anonymous'
+      wpdelete       = 1
+      wpEditToken    = (Get-MWToken CSRF)
+      title          = 'Special:UserMerge'
+      redirectparams = ''
+    }
+
+    $params = @{
+      Uri             = 'https://www.pcgamingwiki.com/wiki/Special:UserMerge'
+      Body            = $body
+      WebSession      = Get-MWSession
+      UseBasicParsing = $true
+    }
+
+    Write-Debug ($params | ConvertTo-Json -Depth 10)
+
+    $Response = Invoke-WebRequest @params
+
+    if ($PassThru)
+    {
+      return $Response
+    }
+  }
+
+  End
+  { }
+}
+#endregion
+
+
+#region Rename-MWUser
+# WIP, uses Special:RenameUser (aka Extension:RenameUser)
+# REQUIRES Connect-MWSessionCL (or does it?)
+function Rename-MWUser
+{
+  [CmdletBinding()]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('Identity')]
+    [string]$Username,
+
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, Position=1)]
+    [ValidateNotNullOrEmpty()]
+    [string]$NewName,
+
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
+    [AllowEmptyString()]
+    [string]$Reason,
+
+    [switch]$MovePages,
+    [switch]$SuppressRedirect,
+
+    <#
+      Debug
+    #>
+    [switch]$PassThru
+  )
+
+  Begin
+  { }
+
+  Process
+  {
+    if ($null -eq $script:Config.API)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return $null
+    }
+
+    $Body = [ordered]@{
+      oldusername      = $Username
+      newusername      = $NewName
+      reason           = $Reason
+      submit           = 'Submit'
+      token            = (Get-MWToken CSRF)
+    }
+
+    if ($MovePages)
+    {
+      $Body.movepages = 1
+    }
+
+    if ($SuppressRedirect)
+    {
+      $Body.suppressredirect = 1
+    }
+
+    $params = @{
+      Uri             = 'https://www.pcgamingwiki.com/wiki/Special:RenameUser'
+      Body            = $Body
+      WebSession      = Get-MWSession
+      UseBasicParsing = $true
+    }
+
+    Write-Debug ($params | ConvertTo-Json -Depth 10)
+
+    $Response = Invoke-WebRequest @params
+
+    if ($PassThru)
+    {
+      return $Response
+    }
+  }
+
+  End
+  { }
 }
 #endregion
 
@@ -7225,7 +7429,7 @@ function Remove-MWSection
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -7440,7 +7644,7 @@ function Rename-MWSection
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -7582,7 +7786,7 @@ function Search-MWPage
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -7877,7 +8081,7 @@ function Set-MWPage
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -8185,7 +8389,7 @@ function Set-MWSection
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -8427,7 +8631,7 @@ function Undo-MWPageEdit
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -8576,7 +8780,7 @@ function Update-MWCargoTable
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
@@ -8699,7 +8903,7 @@ function Update-MWPage
 
   Process
   {
-    if ($null -eq $script:Config.URI)
+    if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
       return $null
