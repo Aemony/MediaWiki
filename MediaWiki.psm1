@@ -159,7 +159,7 @@ $script:ProgressPreference = 'SilentlyContinue' # Suppress progress bar (speeds 
 $global:MWSession
 
 # Script variable to indicate the location of the saved config file
-$script:ConfigFileName   = $env:LOCALAPPDATA + '\PowerShell\MediaWiki\config.json'
+$script:ConfigFileName = $env:LOCALAPPDATA + '\PowerShell\MediaWiki\config.json'
 
 # Script variables used internally during runtime
 $script:MWSessionGuest = $false
@@ -2500,7 +2500,7 @@ function Connect-MWSession
       {
         do
         {
-          $AuthType = Read-Host 'Login method (clientlogin, login) [login]'
+          $AuthType = Read-Host 'Login method (clientlogin, login)'
         } while ($AuthType -NotIn @('clientlogin', 'login'))
 
         $Username = Read-Host 'Username'
