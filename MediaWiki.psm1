@@ -5763,14 +5763,15 @@ function Get-MWUser
   .OUTPUTS
     Array of PSObject holding the requested properties of the given users.
   #>
-  [CmdletBinding(DefaultParameterSetName = 'UserName')]
+  [CmdletBinding(DefaultParameterSetName = 'AllUsers')]
   param
   (
     <#
-      Core parameters
+      Main parameters
     #>
-    [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'UserName', Position=0)]
-    [ValidateNotNullOrEmpty()]
+    [Parameter(ValueFromPipelineByPropertyName, ParameterSetName = 'AllUsers', Position=0)]
+    [Parameter(ValueFromPipelineByPropertyName, ParameterSetName = 'UserName', Position=0)]
+   #[ValidateNotNullOrEmpty()]
     [Alias('UserName')]
     [string[]]$Name,
 
@@ -5778,13 +5779,65 @@ function Get-MWUser
     [Alias('UserID')]
     [int[]]$ID,
 
-    # Use * to include all properties
-    [Parameter()]
-    [ValidateSet('', '*', 'blockinfo', 'cancreate', 'centralids', 'editcount', 'emailable', 'gender', 'groupmemberships', 'groups', 'implicitgroups', 'registration', 'rights')]
-    [string[]]$Properties = @('editcount', 'groups', 'registration', 'rights'),
-    # Not supported on PCGW?
+    [Parameter(ParameterSetName = 'UserName')]
+    [switch]$Exact, # This doesn't actually do anything other than force UserName mode over AllUsers mode when just using the -Name parameter
 
-    # With usprop=centralids, indicate whether the user is attached with the wiki identified by this ID. 
+    <#
+      AllUsers mode
+    #>
+
+    # Enumerating username from...
+    [Parameter(ParameterSetName = 'AllUsers')]
+    [string]$From,
+
+    # Enumerating username to...
+    [Parameter(ParameterSetName = 'AllUsers')]
+    [string]$To,
+
+    # Only include users in these groups...
+    [Parameter(ParameterSetName = 'AllUsers')]
+    [string[]]$Groups,
+
+    # Exclude users in these groups...
+    [Parameter(ParameterSetName = 'AllUsers')]
+    [string[]]$ExcludeGroups,
+
+    # Only include users with these rights...
+    # Does not include rights granted by implicit or auto-promoted groups like *, user, or autoconfirmed.
+    [Parameter(ParameterSetName = 'AllUsers')]
+    [string[]]$Rights,
+
+    [Parameter(ParameterSetName = 'AllUsers')]
+    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
+    [string]$ResultSize = 1000,
+
+    # Only include users active in the last 30 days.
+    [Parameter(ParameterSetName = 'AllUsers')]
+    [switch]$ActiveOnly,
+
+    # Only include users who have made edits.
+    [Parameter(ParameterSetName = 'AllUsers')]
+    [switch]$WithEditsOnly,
+
+    [switch]$Ascending, # (default)
+    [switch]$Descending,
+
+    <#
+      Shared
+    #>
+
+    # Use * to include all properties
+    [Parameter(ParameterSetName = 'AllUsers')]
+    [Parameter(ParameterSetName = 'UserName')]
+    [Parameter(ParameterSetName = 'UserID')]
+    [ValidateSet('', '*', 'blockinfo', 'cancreate', 'centralids', 'editcount', 'emailable', 'gender', 'groupmemberships', 'groups', 'implicitgroups', 'registration', 'rights')]
+    [string[]]$Properties = @(), # @('editcount', 'groups', 'registration', 'rights'), # It is quite costly to retireve user properties so let us default to retrieving none
+    # AllUsers mode supports only a subset of these
+
+    # With usprop=centralids, indicate whether the user is attached with the wiki identified by this ID.
+    [Parameter(ParameterSetName = 'AllUsers')]
+    [Parameter(ParameterSetName = 'UserName')]
+    [Parameter(ParameterSetName = 'UserID')]
     [int]$AttachedWiki,
     
     <#
@@ -5805,38 +5858,65 @@ function Get-MWUser
       return $null
     }
 
-    $Body = [ordered]@{
-      action = 'query'
-      list   = 'users'
-    }
-
-    # With usprop=centralids, indicate whether the user is attached with the wiki identified by this ID. 
+    # With ..prop=centralids, indicate whether the user is attached with the wiki identified by this ID. 
     if ($AttachedWiki)
     {
       if ($Properties -notcontains "centralids")
       { $Properties += 'centralids' }
-      
-      $Body.usattachedwiki = $AttachedWiki
     }
 
-    if ($Properties -contains '*')
-    { $Properties = @('blockinfo', 'cancreate', 'centralids', 'editcount', 'emailable', 'gender', 'groupmemberships', 'groups', 'implicitgroups', 'registration', 'rights') }
+    # AllUsers mode
+    if ($PSCmdlet.ParameterSetName -eq 'AllUsers')
+    {
+      $Body = [ordered]@{
+        action  = 'query'
+        list    = 'allusers'
+        aulimit = 'max'
+      }
+      
+      if ($ResultSize -eq 'Unlimited')                     { $ResultSize = [int32]::MaxValue }
+      if ($Properties -contains '*')                       { $Properties = @('blockinfo', 'centralids', 'editcount', 'groups', 'implicitgroups', 'registration', 'rights') }
+      if ($PSBoundParameters.ContainsKey('Name'))          { $Body.auprefix        = $Name -join '' }
+      if ($PSBoundParameters.ContainsKey('From'))          { $Body.aufrom          = $From }
+      if ($PSBoundParameters.ContainsKey('To'))            { $Body.auto            = $To   }
+      if ($PSBoundParameters.ContainsKey('Groups'))        { $Body.augroup         = $Groups -join '|' }
+      if ($PSBoundParameters.ContainsKey('ExcludeGroups')) { $Body.auexcludegroup  = $ExcludeGroups -join '|' }
+      if ($PSBoundParameters.ContainsKey('Rights'))        { $Body.aurights        = $Rights -join '|' }
+      if ($Properties)                                     { $Body.auprop          = ($Properties.ToLower() -join '|') }
+      if ($ActiveOnly)                                     { $Body.auactiveusers   = 1 }
+      if ($WithEditsOnly)                                  { $Body.auwitheditsonly = 1 }
+      if ($AttachedWiki)                                   { $Body.auattachedwiki  = $AttachedWiki }
 
-    if ($Name)
-    { $Body.ususers = $Name -join '|' }
+      # Arbitrary 5-seconds wait between calls...
+      $Response = Invoke-MWApiContinueRequest -Body $Body -Method GET -ResultSize $ResultSize -Node1 'allusers' -SleepInSeconds 5
 
-    if ($ID)
-    { $Body.ususerids = $ID -join '|' }
+      if ($JSON)
+      { return $Response }
 
-    if ($Properties)
-    { $Body.usprop = ($Properties.ToLower() -join '|') }
+      return $Response.query.allusers | Select-Object -First $ResultSize | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
+    }
 
-    $Response = Invoke-MWApiRequest -Body $Body -Method GET
+    # UserName / UserID mode
+    if ($PSCmdlet.ParameterSetName -in @('UserName', 'UserID'))
+    {
+      $Body = [ordered]@{
+        action = 'query'
+        list   = 'users'
+      }
 
-    if ($JSON)
-    { return $Response }
+      if ($Properties -contains '*')                       { $Properties = @('blockinfo', 'cancreate', 'centralids', 'editcount', 'emailable', 'gender', 'groupmemberships', 'groups', 'implicitgroups', 'registration', 'rights') }
+      if ($Name)                                           { $Body.ususers = $Name -join '|' }
+      if ($ID)                                             { $Body.ususerids = $ID -join '|' }
+      if ($Properties)                                     { $Body.usprop = ($Properties.ToLower() -join '|') }
+      if ($AttachedWiki)                                   { $Body.usattachedwiki  = $AttachedWiki }
 
-    return $Response.query.users | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
+      $Response = Invoke-MWApiRequest -Body $Body -Method GET
+
+      if ($JSON)
+      { return $Response }
+
+      return $Response.query.users | ForEach-Object { ConvertFrom-HashtableToPSObject $_ }
+    }
   }
 }
 #endregion
@@ -6327,6 +6407,7 @@ function Invoke-MWApiRequest
     [TokenType]$Token = [TokenType]::None,
     $Uri = ($script:Config.API),
     [int32]$RateLimit = 60, # In seconds
+    [int32]$RetryWait = 30, # In seconds
 
     # Used by Import-MWFile
     [string]$ContentType,
@@ -6474,8 +6555,35 @@ function Invoke-MWApiRequest
         }
       }
 
-      Write-Debug ($RequestParams | ConvertTo-Json -Depth 10)
-      $Response = Invoke-WebRequest @RequestParams
+      try {
+        Write-Debug ($RequestParams | ConvertTo-Json -Depth 10)
+        $Response = Invoke-WebRequest @RequestParams
+      } catch [System.Net.WebException] {
+        $StatusCode = [int]$_.Exception.Response.StatusCode
+
+        # HTTP 504 Gateway Timeout
+        if ($StatusCode -eq 504)
+        {
+          Write-Warning "HTTP 504 Gateway Timeout, retrying in $RetryWait seconds..."
+          Start-Sleep -Seconds $RetryWait
+          $Retry = $true
+        }
+        
+        # HTTP 500 Internal Server Error
+        elseif ($StatusCode -eq 500)
+        {
+          Write-Warning "HTTP 500 Internal Server Error, retrying in $RetryWait seconds..."
+          Start-Sleep -Seconds $RetryWait
+          $Retry = $true
+        }
+
+        # Unrecognized
+        else {
+          throw $_
+        }
+      } catch {
+        throw $_
+      }
 
       # Built-in : ConvertFrom-Json
       # Custom   : ConvertFrom-JsonToHashtable
