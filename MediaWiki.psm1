@@ -5077,7 +5077,7 @@ function Get-MWPage
     if ($FollowRedirects)
     { $Body.redirects = $null }
 
-    $ArrJSON += Invoke-MWApiRequest -Body $Body -Method POST
+    $ArrJSON += Invoke-MWApiRequest -Body $Body -Method GET
   }
 
   End
