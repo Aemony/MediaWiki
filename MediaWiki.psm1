@@ -2538,6 +2538,8 @@ function Connect-MWSession
       Persistent   = $Persistent          # $true, $false
     }
 
+    $Authenticated = $false
+
     # Authenticated login
     if ((-not [string]::IsNullOrEmpty($TempConfig.Username)) -and (-not [string]::IsNullOrEmpty($TempConfig.Password)))
     {
@@ -2575,7 +2577,10 @@ function Connect-MWSession
           if ($Response.login.result -ne 'Success')
           { Write-Warning -Message "[$($Response.login.result)] $($Response.login.reason)" }
           else
-          { $script:MWSessionGuest = $false }
+          {
+            $script:MWSessionGuest = $false
+            $Authenticated = $true
+          }
         }
 
         # Quite untested...
@@ -2593,9 +2598,12 @@ function Connect-MWSession
           $Response = Invoke-MWApiRequest -Body $Body -Method POST -IgnoreDisconnect -NoAssert -WebSession $global:MWSession
 
           if ($Response.clientlogin.status -ne 'PASS')
-          { Write-Warning -Message "[$($Response.clientlogin.status)] $($Response.login.reason)" }
+          { Write-Warning -Message "[$($Response.clientlogin.status)] $($Response.clientlogin.message)" }
           else
-          { $script:MWSessionGuest = $false }
+          {
+            $script:MWSessionGuest = $false
+            $Authenticated = $true
+          }
         }
       }
     }
@@ -2618,7 +2626,10 @@ function Connect-MWSession
         if ($null -eq $Response.query.userinfo.anon)
         { Write-Warning "You are not an anonyumous user." }
         else
-        { $script:MWSessionGuest = $true }
+        {
+          $Authenticated = $true
+          $script:MWSessionGuest = $true
+        }
       }
     }
   }
@@ -2634,51 +2645,54 @@ function Connect-MWSession
     if ($BSTR)
     { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR) }
 
-    # Cache site information (restrictions, namespaces, etc)
-    $script:Cache.SiteInfo = Get-MWSiteInfo
-
-    # Cache user information (rate limits etc)
-    $script:Cache.UserInfo = Get-MWCurrentUser
-
-    # Cache change tags
-    Get-MWChangeTag | Out-Null
-
-    if (-not $Silent)
+    if ($Authenticated)
     {
-      Write-Host "Welcome " -ForegroundColor Yellow -NoNewline
+      # Cache site information (restrictions, namespaces, etc)
+      $script:Cache.SiteInfo = Get-MWSiteInfo
 
-      if ($script:Cache.UserInfo.LatestContribution)
-      { Write-Host "back " -ForegroundColor Yellow -NoNewline }
+      # Cache user information (rate limits etc)
+      $script:Cache.UserInfo = Get-MWCurrentUser
 
-      Write-Host $script:Cache.UserInfo.Name -ForegroundColor DarkGreen -NoNewline
-      Write-Host "!" -ForegroundColor Yellow -NoNewline
+      # Cache change tags
+      Get-MWChangeTag | Out-Null
 
-      if ($script:Cache.UserInfo.LatestContribution)
+      if (-not $Silent)
       {
-        Write-Host " Your latest contribution was on " -ForegroundColor Yellow -NoNewline
-        Write-Host "$([datetime]$script:Cache.UserInfo.LatestContribution)." -ForegroundColor DarkYellow -NoNewline
+        Write-Host "Welcome " -ForegroundColor Yellow -NoNewline
+
+        if ($script:Cache.UserInfo.LatestContribution)
+        { Write-Host "back " -ForegroundColor Yellow -NoNewline }
+
+        Write-Host $script:Cache.UserInfo.Name -ForegroundColor DarkGreen -NoNewline
+        Write-Host "!" -ForegroundColor Yellow -NoNewline
+
+        if ($script:Cache.UserInfo.LatestContribution)
+        {
+          Write-Host " Your latest contribution was on " -ForegroundColor Yellow -NoNewline
+          Write-Host "$([datetime]$script:Cache.UserInfo.LatestContribution)." -ForegroundColor DarkYellow -NoNewline
+        }
+
+        Write-Host # NewLine
+
+        if ($script:Cache.UserInfo.Messages)
+        {
+          Write-Host "You have "   -ForegroundColor Yellow     -NoNewline
+          Write-Host "unread"      -ForegroundColor DarkYellow -NoNewline
+          Write-Host " messages! " -ForegroundColor Yellow     -NoNewline
+        }
+        
+        if ($script:Cache.UserInfo.UnreadCount)
+        {
+          Write-Host "There are " -ForegroundColor Yellow -NoNewline
+          Write-Host $script:Cache.UserInfo.UnreadCount -ForegroundColor DarkYellow -NoNewline
+          Write-Host " unread pages on your watchlist." -ForegroundColor Yellow -NoNewline
+        }
+
+        Write-Host # NewLine
       }
 
-      Write-Host # NewLine
-
-      if ($script:Cache.UserInfo.Messages)
-      {
-        Write-Host "You have "   -ForegroundColor Yellow     -NoNewline
-        Write-Host "unread"      -ForegroundColor DarkYellow -NoNewline
-        Write-Host " messages! " -ForegroundColor Yellow     -NoNewline
-      }
-      
-      if ($script:Cache.UserInfo.UnreadCount)
-      {
-        Write-Host "There are " -ForegroundColor Yellow -NoNewline
-        Write-Host $script:Cache.UserInfo.UnreadCount -ForegroundColor DarkYellow -NoNewline
-        Write-Host " unread pages on your watchlist." -ForegroundColor Yellow -NoNewline
-      }
-
-      Write-Host # NewLine
+      $script:MWSessionBot = ($null -ne ($script:Cache.UserInfo.Groups | Where-Object { $_ -eq 'bot' }))
     }
-
-    $script:MWSessionBot = ($null -ne ($script:Cache.UserInfo.Groups | Where-Object { $_ -eq 'bot' }))
   }
 }
 #endregion
@@ -7254,8 +7268,8 @@ function Remove-MWPage
 #endregion
 
 #region Remove-MWUser
-# WIP, uses Special:UserMerge (aka Extension:UserMerge)
-# REQUIRES Connect-MWSessionCL (or does it?)
+# Uses Special:UserMerge (aka Extension:UserMerge)
+# Almost certainly requires ClientLogin... TODO: Verify!
 function Remove-MWUser
 {
   [CmdletBinding(DefaultParameterSetName = 'Username')]
@@ -7300,14 +7314,64 @@ function Remove-MWUser
 
     $params = @{
       Uri             = 'https://www.pcgamingwiki.com/wiki/Special:UserMerge'
-      Body            = $body
+      Method          = 'POST'
+      Body            = $Body
       WebSession      = Get-MWSession
       UseBasicParsing = $true
     }
 
     Write-Debug ($params | ConvertTo-Json -Depth 10)
 
-    $Response = Invoke-WebRequest @params
+    if ($Response = Invoke-WebRequest @params)
+    {
+      # This is almost certainly only correct on PCGW's theme...
+
+      <# ON SUCCESS:
+        <div id="mw-content-text"><p>Merge from UserName (#####) to Anonymous (###) is complete.
+        </p><p>UserName (#####) has been deleted.
+        </p></div>
+      #>
+      <# ON ERROR:
+        <div class='oo-ui-fieldLayout-messages'>
+          <div aria-disabled='false' role='alert' class='oo-ui-widget oo-ui-widget-enabled oo-ui-labelElement oo-ui-flaggedElement-error oo-ui-iconElement oo-ui-messageWidget'>
+            <span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'></span>
+            <span class='oo-ui-labelElement-label'>There are problems with some of your input.</span>
+        </div>
+        [...]
+        <div class='oo-ui-fieldLayout-messages'>
+          <div aria-disabled='false' role='alert' class='oo-ui-widget oo-ui-widget-enabled oo-ui-labelElement oo-ui-flaggedElement-error oo-ui-iconElement oo-ui-messageWidget'>
+            <span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'></span>
+            <span class='oo-ui-labelElement-label'><strong>UserName</strong> does not exist.</span>
+          </div>
+        </div>
+      #>
+      $Oneliner = ($Response.Content -replace '\n', '') -replace '\s{2}', ''
+      $Success = $false
+
+      $PatternSuccess = '<div id="mw-content-text">(.+)?(?=<\/div>)'
+      if ($Oneliner -match $PatternSuccess)
+      {
+        $Pattern    = '<p>([^<]*)?<\/p>'
+        $Substrings = ([regex]$Pattern).Matches($Matches[1])
+        foreach ($Substring in $Substrings)
+        {
+          $Success = $true
+          Write-Host ($Substring -replace $Pattern, '$1')
+        }
+      }
+
+      if (-not $Success)
+      {
+        $PatternError = "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)(?=<\/span>)"
+        if ($Substrings = ([regex]$PatternError).Matches($Oneliner)) {
+          foreach ($Substring in $Substrings)
+          {
+            $FixPattern = "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)"
+            Write-Warning ($Substring -replace $FixPattern, '$1')
+          }
+        }
+      }
+    }
 
     if ($PassThru)
     {
@@ -7322,8 +7386,8 @@ function Remove-MWUser
 
 
 #region Rename-MWUser
-# WIP, uses Special:RenameUser (aka Extension:RenameUser)
-# REQUIRES Connect-MWSessionCL (or does it?)
+# Uses Special:RenameUser (aka Extension:RenameUser)
+# Almost certainly requires ClientLogin... TODO: Verify!
 function Rename-MWUser
 {
   [CmdletBinding()]
@@ -7368,6 +7432,7 @@ function Rename-MWUser
       oldusername      = $Username
       newusername      = $NewName
       reason           = $Reason
+      movepages        = 0
       submit           = 'Submit'
       token            = (Get-MWToken CSRF)
     }
@@ -7384,6 +7449,7 @@ function Rename-MWUser
 
     $params = @{
       Uri             = 'https://www.pcgamingwiki.com/wiki/Special:RenameUser'
+      Method          = 'POST'
       Body            = $Body
       WebSession      = Get-MWSession
       UseBasicParsing = $true
@@ -7391,7 +7457,19 @@ function Rename-MWUser
 
     Write-Debug ($params | ConvertTo-Json -Depth 10)
 
-    $Response = Invoke-WebRequest @params
+    if ($Response = Invoke-WebRequest @params)
+    {
+      # <div class="errorbox">The user "xxx19" does not exist.</div>
+      # <div class="successbox">The user "xxx18" has been renamed to "xxx19".</div>
+      if ($Response.Content -match '<div class="(success|error)box">([^<]*)?<\/div>')
+      {
+        if ($Matches[1] -eq 'success') {
+          Write-Host $Matches[2]
+        } else {
+          Write-Warning $Matches[2]
+        }
+      }
+    }
 
     if ($PassThru)
     {
