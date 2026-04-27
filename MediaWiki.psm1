@@ -155,8 +155,9 @@ $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = { Clear-MWSession }
 # Global configurations
 $script:ProgressPreference = 'SilentlyContinue' # Suppress progress bar (speeds up Invoke-WebRequest by a ton)
 
-# Global variable to hold the web session
-$global:MWSession
+# Global variables
+$global:MWSession   # Holds the web session
+$global:MWUserAgent # Allows a custom user agent string to be used
 
 # Script variable to indicate the location of the saved config file
 $script:ConfigFileName = $env:LOCALAPPDATA + '\PowerShell\MediaWiki\config.json'
@@ -6248,9 +6249,26 @@ function Import-MWFile
             { $ext = '.tmp' }
 
             $FilePath = "$env:Temp\mw-$(Get-Random).$ext"
+
+            $params = @{
+              Uri              = $Link
+              Method           = 'GET'
+              OutFile          = $FilePath
+             #WebSession       = Get-MWSession
+              UseBasicParsing  = $true
+              DisableKeepAlive = $true
+            }
+
+            if (-not [string]::IsNullOrWhiteSpace($global:MWUserAgent))
+            {
+              $params += @{
+                UserAgent = $global:MWUserAgent
+              }
+            }
+
             try {
               Write-Verbose "Downloading $Link..."
-              Invoke-WebRequest -Uri $Link -Method GET -UseBasicParsing -DisableKeepAlive -OutFile $FilePath
+              Invoke-WebRequest @params
             } catch {
               $StatusCode = $_.Exception.response.StatusCode.value__
             }
@@ -6566,6 +6584,13 @@ function Invoke-MWApiRequest
       {
         $RequestParams   += @{
           ContentType     = $ContentType
+        }
+      }
+
+      if (-not [string]::IsNullOrWhiteSpace($global:MWUserAgent))
+      {
+        $RequestParams   += @{
+          UserAgent       = $global:MWUserAgent
         }
       }
 
@@ -7320,6 +7345,13 @@ function Remove-MWUser
       UseBasicParsing = $true
     }
 
+    if (-not [string]::IsNullOrWhiteSpace($global:MWUserAgent))
+    {
+      $params += @{
+        UserAgent = $global:MWUserAgent
+      }
+    }
+
     Write-Debug ($params | ConvertTo-Json -Depth 10)
 
     if ($Response = Invoke-WebRequest @params)
@@ -7453,6 +7485,13 @@ function Rename-MWUser
       Body            = $Body
       WebSession      = Get-MWSession
       UseBasicParsing = $true
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($global:MWUserAgent))
+    {
+      $params += @{
+        UserAgent = $global:MWUserAgent
+      }
     }
 
     Write-Debug ($params | ConvertTo-Json -Depth 10)
