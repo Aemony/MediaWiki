@@ -1084,12 +1084,11 @@ function Rename-PropertyName
 #endregion
 
 #region Set-Template/Parameter
+function RegexEscape($UnescapedString)
+{ return [regex]::Escape($UnescapedString).Replace('/', '\/') }
 
-  function RegexEscape($UnescapedString)
-  { return [regex]::Escape($UnescapedString).Replace('/', '\/') }
-
-  function Set-MWTemplateValue
-  {
+function Set-MWTemplateValue
+{
 <#
   .SYNOPSIS
     Helper function used to set the value of a template to the specified value
@@ -1100,46 +1099,46 @@ function Rename-PropertyName
     An object to perform the validation on.
   .EXAMPLE
 #>
-    param (
-      [Parameter(Mandatory, Position=0)]
-      [string]$Template,
+  param (
+    [Parameter(Mandatory, Position=0)]
+    [string]$Template,
 
-      [Parameter(Mandatory, Position=1)]
-      [AllowEmptyString()]
-      [string]$Value,
+    [Parameter(Mandatory, Position=1)]
+    [AllowEmptyString()]
+    [string]$Value,
 
-      [Parameter(Mandatory, ValueFromPipeline)]
-      [string]$Wikitext
-    )
-    process
-    {
-      if (-not [string]::IsNullOrWhiteSpace($Value))
-      { $Value += ' ' }
-
-      return ($Wikitext -replace ('(?m)^\{\{(' + (RegexEscape($Template)) + '\s*)\|.*\}\}$'), "{{`$1| $Value}}")
-    }
-  }
-
-  function SetParameterValue
+    [Parameter(Mandatory, ValueFromPipeline)]
+    [string]$Wikitext
+  )
+  process
   {
-    param (
-      [Parameter(Mandatory, Position=0)]
-      [string]$Parameter,
+    if (-not [string]::IsNullOrWhiteSpace($Value))
+    { $Value += ' ' }
 
-      [Parameter(Mandatory, Position=1)]
-      [AllowEmptyString()]
-      [string]$Value,
-
-      [Parameter(Mandatory, ValueFromPipeline)]
-      [string]$Wikitext
-    )
-    process { return $Wikitext -replace ('(?m)^(\|\s*' + (RegexEscape($Parameter)) + '\s*=).*$'), "`$1 $Value" }
+    return ($Wikitext -replace ('(?m)^\{\{(' + (RegexEscape($Template)) + '\s*)\|.*\}\}$'), "{{`$1| $Value}}")
   }
+}
+
+function SetParameterValue
+{
+  param (
+    [Parameter(Mandatory, Position=0)]
+    [string]$Parameter,
+
+    [Parameter(Mandatory, Position=1)]
+    [AllowEmptyString()]
+    [string]$Value,
+
+    [Parameter(Mandatory, ValueFromPipeline)]
+    [string]$Wikitext
+  )
+  process { return $Wikitext -replace ('(?m)^(\|\s*' + (RegexEscape($Parameter)) + '\s*=).*$'), "`$1 $Value" }
+}
 
 # TODO: Add support for adding the parameter?
 # TODO: Add support for replacing the parameter of all found matches?
-  function Set-MWTemplateParameterValue
-  {
+function Set-MWTemplateParameterValue
+{
 <#
   .SYNOPSIS
     Helper function used to set the value of a template parameter to the specified value
@@ -1158,34 +1157,34 @@ function Rename-PropertyName
   .EXAMPLE
     $Page.Wikitext | Set-MWTemplateParameterValue 'Infobox game' -Parameter 'steam appid' -Value '70'
 #>
-    param (
-      [Parameter(Mandatory, Position=0)]
-      [string]$Template,
+  param (
+    [Parameter(Mandatory, Position=0)]
+    [string]$Template,
 
-      [Parameter(Mandatory, Position=1)]
-      [string]$Parameter,
+    [Parameter(Mandatory, Position=1)]
+    [string]$Parameter,
 
-      [Parameter(Mandatory, Position=2)]
-      [AllowEmptyString()]
-      [string]$Value,
+    [Parameter(Mandatory, Position=2)]
+    [AllowEmptyString()]
+    [string]$Value,
 
-      [Parameter(Mandatory, ValueFromPipeline)]
-      [string]$Wikitext
-    )
-    
-    process
+    [Parameter(Mandatory, ValueFromPipeline)]
+    [string]$Wikitext
+  )
+  
+  process
+  {
+    if ($Wikitext -match "(?s){{$Template(.*?)\n\n={1,6}")
     {
-      if ($Wikitext -match "(?s){{$Template(.*?)\n\n={1,6}")
-      {
-        $TemplateBody = $Matches[1].Trim()
-        $TemplateRepl = $TemplateBody | SetParameterValue $Parameter -Value $Value
-        #Write-Verbose "Performing change on '$Template':`nOrg: $TemplateBody`nNew: $TemplateRepl"
-        return $Wikitext.Replace($TemplateBody, $TemplateRepl)
-      }
-
-      return $Wikitext
+      $TemplateBody = $Matches[1].Trim()
+      $TemplateRepl = $TemplateBody | SetParameterValue $Parameter -Value $Value
+      #Write-Verbose "Performing change on '$Template':`nOrg: $TemplateBody`nNew: $TemplateRepl"
+      return $Wikitext.Replace($TemplateBody, $TemplateRepl)
     }
+
+    return $Wikitext
   }
+}
 
 #endregion
 
