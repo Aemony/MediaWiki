@@ -7337,7 +7337,7 @@ function Remove-MWUser
     }
 
     $params = @{
-      Uri             = 'https://www.pcgamingwiki.com/wiki/Special:UserMerge'
+      Uri             = $script:Config.Wiki + 'Special:UserMerge'
       Method          = 'POST'
       Body            = $Body
       WebSession      = Get-MWSession
@@ -7479,7 +7479,7 @@ function Rename-MWUser
     }
 
     $params = @{
-      Uri             = 'https://www.pcgamingwiki.com/wiki/Special:RenameUser'
+      Uri             = $script:Config.Wiki + 'Special:RenameUser'
       Method          = 'POST'
       Body            = $Body
       WebSession      = Get-MWSession
@@ -8714,6 +8714,210 @@ function Set-MWSection
   }
 
   End { }
+}
+#endregion
+
+#region Confirm-MWCurrentUserEmail
+function Confirm-MWCurrentUserEmail
+{
+  [CmdletBinding()]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [string]$ConfirmLink,
+
+    <#
+      Debug
+    #>
+    [switch]$PassThru
+  )
+
+  Begin
+  { }
+
+  Process
+  {
+    if ($ConfirmLink -NotLike "*/wiki/Special:ConfirmEmail/*")
+    {
+      $ConfirmLink = $script:Config.Wiki + 'Special:ConfirmEmail/' + $ConfirmLink
+    }
+
+    # Do not authenticate or something like that...
+    #   essentially just open the link in an "incognito mode"
+    $params = @{
+      Uri             = $ConfirmLink
+      Method          = 'Get'
+      UseBasicParsing = $true
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($global:MWUserAgent))
+    {
+      $params += @{
+        UserAgent = $global:MWUserAgent
+      }
+    }
+
+    Write-Debug ($params | ConvertTo-Json -Depth 10)
+
+    if ($Response = Invoke-WebRequest @params)
+    {
+      <#
+      <div id="mw-content-text">
+        <div class="error" style="clear: both;">
+          <p>A confirmation email has been sent to the specified email address.
+          Before any other email is sent to the account, you will have to follow the instructions in the email, to confirm that the account is actually yours.
+          </p>
+        </div>
+      </div>
+      #>
+      $Oneliner = ($Response.Content -replace '\n', '') -replace '\s{2}', ''
+      $Success = $false
+
+      $PatternSuccess = '<div id="mw-content-text">(.*?)<\/div>'
+      if ($Oneliner -match $PatternSuccess)
+      {
+        $Pattern    = '<p>([^<]*)?<\/p>'
+        $Substrings = ([regex]$Pattern).Matches($Matches[1])
+        foreach ($Substring in $Substrings)
+        {
+          $Success = $true
+          Write-Host ($Substring -replace $Pattern, '$1')
+        }
+      }
+
+      if (-not $Success)
+      {
+        $PatternError = "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)(?=<\/span>)"
+        if ($Substrings = ([regex]$PatternError).Matches($Oneliner)) {
+          foreach ($Substring in $Substrings)
+          {
+            $FixPattern = "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)"
+            Write-Warning ($Substring -replace $FixPattern, '$1')
+          }
+        }
+      }
+    }
+
+    if ($PassThru)
+    {
+      return $Response
+    }
+  }
+
+  End
+  { }
+}
+#endregion
+
+#region Set-MWCurrentUserEmail
+# Uses Special:ChangeEmail
+# Almost certainly requires ClientLogin... TODO: Verify!
+function Set-MWCurrentUserEmail
+{
+  [CmdletBinding()]
+  param (
+    <#
+      Core parameters
+    #>
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [string]$NewEmailAddress,
+
+    <#
+      Debug
+    #>
+    [switch]$PassThru
+  )
+
+  Begin
+  { }
+
+  Process
+  {
+    if ($null -eq $script:Config.API)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return
+    }
+
+    $Body = [ordered]@{
+      wpNewEmail     = $NewEmailAddress
+      wpEditToken    = (Get-MWToken CSRF)
+      title          = 'Special:ChangeEmail'
+      redirectparams = ''
+    }
+
+    
+
+    $params = @{
+      Uri             = $script:Config.Wiki + 'Special:ChangeEmail'
+      Method          = 'POST'
+      Body            = $Body
+      WebSession      = Get-MWSession
+      UseBasicParsing = $true
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($global:MWUserAgent))
+    {
+      $params += @{
+        UserAgent = $global:MWUserAgent
+      }
+    }
+
+    # Incomplete
+
+    Write-Debug ($params | ConvertTo-Json -Depth 10)
+
+    if ($Response = Invoke-WebRequest @params)
+    {
+      <#
+      <div id="mw-content-text">
+        <div class="error" style="clear: both;">
+          <p>A confirmation email has been sent to the specified email address.
+          Before any other email is sent to the account, you will have to follow the instructions in the email, to confirm that the account is actually yours.
+          </p>
+        </div>
+      </div>
+      #>
+      $Oneliner = ($Response.Content -replace '\n', '') -replace '\s{2}', ''
+      $Success = $false
+
+      $PatternSuccess = '<div id="mw-content-text">(.*?)<\/div>'
+      if ($Oneliner -match $PatternSuccess)
+      {
+        $Pattern    = '<p>([^<]*)?<\/p>'
+        $Substrings = ([regex]$Pattern).Matches($Matches[1])
+        foreach ($Substring in $Substrings)
+        {
+          $Success = $true
+          Write-Host ($Substring -replace $Pattern, '$1')
+        }
+      }
+
+      if (-not $Success)
+      {
+        $PatternError = "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)(?=<\/span>)"
+        if ($Substrings = ([regex]$PatternError).Matches($Oneliner)) {
+          foreach ($Substring in $Substrings)
+          {
+            $FixPattern = "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)"
+            Write-Warning ($Substring -replace $FixPattern, '$1')
+          }
+        }
+      }
+    }
+
+    if ($PassThru)
+    {
+      return $Response
+    }
+  }
+
+  End
+  { }
 }
 #endregion
 
