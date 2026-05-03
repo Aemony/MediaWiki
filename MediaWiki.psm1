@@ -1625,7 +1625,7 @@ function Add-MWPage
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if (-not $NoNewline -and -not [string]::IsNullOrWhiteSpace($Content))
@@ -1850,7 +1850,7 @@ function Add-MWSection
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($FromTitle)
@@ -2047,7 +2047,7 @@ function Clear-MWPage
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     $Parameters    = @{
@@ -2246,7 +2246,7 @@ function Clear-MWSection
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($FromTitle)
@@ -2268,7 +2268,7 @@ function Clear-MWSection
     if ($null -eq $SectionContent)
     {
       Write-Warning 'Could not retrieve section content from the specified page!'
-      return $null
+      return
     }
 
     # Clearing the section means retaining just the section header...
@@ -2751,7 +2751,7 @@ function ConvertTo-MWParsedOutput
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     $Body = [ordered]@{
@@ -2830,7 +2830,7 @@ function Disconnect-MWSession
   End
   {
     if ($null -eq $script:Config.API)
-    { return $null }
+    { return }
 
     $Body    = [ordered]@{
       action = 'logout'
@@ -2844,7 +2844,7 @@ function Disconnect-MWSession
     if ($JSON)
     { return $Response }
 
-    return $null
+    return
   }
 }
 #endregion
@@ -2929,7 +2929,7 @@ function Find-MWFile
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($ResultSize -eq 'Unlimited')
@@ -3049,7 +3049,7 @@ function Find-MWFileDuplicate
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
     
     if ($ResultSize -eq 'Unlimited')
@@ -3187,7 +3187,7 @@ function Find-MWPage
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($ResultSize -eq 'Unlimited')
@@ -3431,7 +3431,7 @@ function Get-MWAPIModule
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     $Body = [ordered]@{
@@ -3486,7 +3486,7 @@ function Get-MWBackLink
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($ResultSize -eq 'Unlimited')
@@ -3569,7 +3569,7 @@ function Get-MWCargoQuery
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
     
     $Body = [ordered]@{
@@ -3801,7 +3801,7 @@ function Get-MWCategoryMember
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($ResultSize -eq 'Unlimited')
@@ -3950,7 +3950,7 @@ function Get-MWChangeTag
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($ResultSize -eq 'Unlimited')
@@ -4019,7 +4019,7 @@ function Get-MWCurrentUser
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($Properties -contains '*')
@@ -4133,7 +4133,7 @@ function Get-MWEmbeddedIn
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
     
     if ($ResultSize -eq 'Unlimited')
@@ -4231,7 +4231,7 @@ function Get-MWEventLog
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($ResultSize -eq 'Unlimited')
@@ -4419,7 +4419,7 @@ function Get-MWFileInfo
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($ResultSize -eq 'Unlimited')
@@ -4517,7 +4517,7 @@ function Get-MWFileUsage
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($ResultSize -eq 'Unlimited')
@@ -4607,7 +4607,7 @@ function Get-MWRecentChanges
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($ResultSize -eq 'Unlimited')
@@ -4871,7 +4871,7 @@ function Get-MWNamespace
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     # Alternate mode
@@ -4907,7 +4907,7 @@ function Get-MWNamespace
         { return ($LocalCopy | Copy-Object) }
       }
 
-      return $null
+      return
     }
   }
 
@@ -5059,7 +5059,7 @@ function Get-MWPage
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     $Body = [ordered]@{
@@ -5189,7 +5189,7 @@ function Get-MWPageInfo
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     $Body = [ordered]@{
@@ -5256,7 +5256,7 @@ function Get-MWPageLink
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($ResultSize -eq 'Unlimited')
@@ -5423,7 +5423,7 @@ function Get-MWSection
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($FromTitle)
@@ -5527,7 +5527,7 @@ function Get-MWSiteInfo
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($Properties -contains '*')
@@ -5626,7 +5626,7 @@ function Get-MWToken
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     # Return all tokens if not specifying any
@@ -5701,7 +5701,7 @@ function Get-MWUnreadNotifications
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($ResultSize -eq 'Unlimited')
@@ -5869,7 +5869,7 @@ function Get-MWUser
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     # With ..prop=centralids, indicate whether the user is attached with the wiki identified by this ID. 
@@ -5967,7 +5967,7 @@ function Get-MWTranscludedIn
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($ResultSize -eq 'Unlimited')
@@ -6125,7 +6125,7 @@ function Import-MWFile
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     $Body = [ordered]@{
@@ -6769,7 +6769,7 @@ function Move-MWPage
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     $Body = [ordered]@{
@@ -6929,13 +6929,13 @@ function New-MWPage
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($Content -and $Wikitext)
     {
       Write-Warning "-Content and -Wikitext cannot be used at the same time!"
-      return $null
+      return
     }
 
     if ($Wikitext)
@@ -7123,13 +7123,13 @@ function New-MWSection
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($Content -and $Wikitext)
     {
       Write-Warning "-Content and -Wikitext cannot be used at the same time!"
-      return $null
+      return
     }
 
     if ($Wikitext)
@@ -7242,7 +7242,7 @@ function Remove-MWPage
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     [String[]]$Pages   = @()
@@ -7324,7 +7324,7 @@ function Remove-MWUser
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     $Body = [ordered]@{
@@ -7456,7 +7456,7 @@ function Rename-MWUser
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     $Body = [ordered]@{
@@ -7656,7 +7656,7 @@ function Remove-MWSection
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($FromTitle)
@@ -7871,7 +7871,7 @@ function Rename-MWSection
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($FromTitle)
@@ -7893,7 +7893,7 @@ function Rename-MWSection
     if ($null -eq $SectionContent)
     {
       Write-Warning 'Could not retrieve section content from the specified page!'
-      return $null
+      return
     }
 
     # Header will always be the first line of the section content
@@ -8013,7 +8013,7 @@ function Search-MWPage
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($ResultSize -eq 'Unlimited')
@@ -8308,13 +8308,13 @@ function Set-MWPage
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($Content -and $Wikitext)
     {
       Write-Warning "-Content and -Wikitext cannot be used at the same time!"
-      return $null
+      return
     }
 
     if ($Wikitext)
@@ -8616,13 +8616,13 @@ function Set-MWSection
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($Content -and $Wikitext)
     {
       Write-Warning "-Content and -Wikitext cannot be used at the same time!"
-      return $null
+      return
     }
 
     if ($FromTitle)
@@ -8650,7 +8650,7 @@ function Set-MWSection
     if ($null -eq $SectionContent)
     {
       Write-Warning 'Could not retrieve section content from the specified page!'
-      return $null
+      return
     }
 
     # Header will always be the first line of the section content
@@ -8858,7 +8858,7 @@ function Undo-MWPageEdit
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     # Regular undo
@@ -9007,7 +9007,7 @@ function Update-MWCargoTable
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     if ($UpdateOnlyMissingInReplacementTable)
@@ -9018,7 +9018,7 @@ function Update-MWCargoTable
       if ($null -eq $ReplacementTable)
       {
         Write-Warning "No replacement table have been created!"
-        return $null
+        return
       }
     }
 
@@ -9028,7 +9028,7 @@ function Update-MWCargoTable
     if ($null -eq $Pages)
     {
       Write-Warning 'The specified Cargo table could not be found or does not contain any rows.'
-      return $null
+      return
     }
 
     if ($UpdateOnlyMissingInReplacementTable)
@@ -9130,7 +9130,7 @@ function Update-MWPage
     if ($null -eq $script:Config.API)
     {
       Write-Warning "Not connected to a MediaWiki instance."
-      return $null
+      return
     }
 
     [String[]]$PagesFull = @()
