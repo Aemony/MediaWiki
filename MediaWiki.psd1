@@ -67,7 +67,7 @@
 
   # Functions to export from this module
   #FunctionsToExport = '*' #For performance, list functions explicitly
-  FunctionsToExport  = @('Add-*', 'Clear-MWSection', 'Clear-MWPage', 'Connect-MWSession', 'ConvertTo-*', 'Disconnect-MWSession', 'Find-*', 'Get-*', 'Import-*', 'Invoke-*', 'Move-*', 'New-*', 'Remove-*', 'Rename-*', 'Search-*', 'Set-*', 'Show-*', 'Undo-*', 'Update-*')
+  FunctionsToExport  = @('*-MW*')
 
   # Cmdlets to export from this module
   CmdletsToExport = '*'
