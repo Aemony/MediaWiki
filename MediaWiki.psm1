@@ -5902,7 +5902,7 @@ function Get-MWUser
       if ($AttachedWiki)                                   { $Body.auattachedwiki  = $AttachedWiki }
 
       # Arbitrary 5-seconds wait between calls...
-      $Response = Invoke-MWApiContinueRequest -Body $Body -Method GET -ResultSize $ResultSize -Node1 'allusers' -SleepInSeconds 5
+      $Response = Invoke-MWApiContinueRequest -Body $Body -Method GET -ResultSize $ResultSize -Node1 'allusers'
 
       if ($JSON)
       { return $Response }
