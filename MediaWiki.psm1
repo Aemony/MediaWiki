@@ -3387,6 +3387,92 @@ function Find-MWRedirectOrphan
 }
 #endregion
 
+#region Find-MWUnusedImages
+function Find-MWUnusedImages
+{
+  [CmdletBinding()]
+  param
+  (
+    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
+    [string]$ResultSize = 1000,
+    [uint32]$Offset = 0, # The query offset. The value must be no less than 0.
+    
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin { }
+
+  Process
+  {
+    return Get-MWQueryPageList -Page 'Unusedimages' -ResultSize $ResultSize -Offset $Offset
+  }
+
+  End { }
+}
+#endregion
+
+#region Get-MWQueryPageList
+function Get-MWQueryPageList
+{
+  [CmdletBinding()]
+  param
+  (
+    [Parameter(Mandatory, ValueFromPipelineByPropertyName, Position=0)]
+    [ValidateSet('Ancientpages', 'BrokenRedirects', 'Deadendpages', 'DisambiguationPageLinks', 'DisambiguationPages', 'DoubleRedirects', 'Fewestrevisions', 'GadgetUsage', 'GloballyWantedFiles', 'LintTemplateErrors', 'ListDuplicatedFiles', 'Listredirects', 'Lonelypages', 'Longpages', 'MediaStatistics', 'MostGloballyLinkedFiles', 'Mostcategories', 'Mostimages', 'Mostinterwikis', 'Mostlinked', 'Mostlinkedcategories', 'Mostlinkedtemplates', 'Mostrevisions', 'OrphanedTimedText', 'Shortpages', 'Uncategorizedcategories', 'Uncategorizedimages', 'Uncategorizedpages', 'Uncategorizedtemplates', 'UnconnectedPages', 'Unusedcategories', 'Unusedimages', 'Unusedtemplates', 'Unwatchedpages', 'Wantedcategories', 'Wantedfiles', 'Wantedpages', 'Wantedtemplates', 'Withoutinterwiki')]
+    [string]$Page,
+
+    [uint32]$Offset = 0, # The query offset. The value must be no less than 0.
+
+    [ValidateScript({ Test-MWResultSize -InputObject $PSItem })]
+    [string]$ResultSize = 1000,
+    
+    <#
+      Debug
+    #>
+    [switch]$JSON
+  )
+
+  Begin
+  {
+    $ArrJSON = @()
+  }
+
+  Process
+  {
+    if ($null -eq $script:Config.API)
+    {
+      Write-Warning "Not connected to a MediaWiki instance."
+      return
+    }
+
+    if ($ResultSize -eq 'Unlimited')
+    { $ResultSize = [int32]::MaxValue } # int32 because of Select-Object -First [int32]
+
+    # Preparation
+    $Body = [ordered]@{
+      action        = 'query'
+      list          = 'querypage'
+      qppage        = $Page
+      qpoffset      = $Offset
+      qplimit       = 'max'
+    }
+
+    $ArrJSON += Invoke-MWApiContinueRequest -Body $Body -Method GET -ResultSize $ResultSize -Node1 'querypage' -Node2 'results'
+  }
+
+  End
+  {
+    if ($JSON)
+    { return $ArrJSON }
+
+    return (($ArrJSON.query.querypage.results | Select-Object -First $ResultSize) | ForEach-Object { ConvertFrom-HashtableToPSObject $_ })
+  }
+}
+#endregion
+
 #region Get-MWAPIModule
 function Get-MWAPIModule
 {
@@ -6239,7 +6325,7 @@ function Import-MWFile
           # URL based upload is disabled
           if ($UploadError.code -eq 'copyuploaddisabled')
           {
-            Write-Host "URL based upload is disabled, attempting a local workaround..."
+            Write-Host 'URL based upload is disabled, attempting a local workaround...' -ForegroundColor Gray
             $StatusCode = 200
             $Link       = $Url
             $ext        = $Link.Split('.')[-1]
@@ -7387,20 +7473,32 @@ function Remove-MWUser
         foreach ($Substring in $Substrings)
         {
           $Success = $true
-          Write-Host ($Substring -replace $Pattern, '$1')
+          Write-Host ($Substring -replace $Pattern, '$1') -ForegroundColor Yellow
         }
       }
 
       if (-not $Success)
       {
+        $Errors = @()
         $PatternError = "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)(?=<\/span>)"
-        if ($Substrings = ([regex]$PatternError).Matches($Oneliner)) {
+        if ($Substrings = ([regex]$PatternError).Matches($Oneliner))
+        {
+          $FixPatterns = @(
+            "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)"
+            "<strong>(.+?)</strong>"
+          )
           foreach ($Substring in $Substrings)
           {
-            $FixPattern = "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)"
-            Write-Warning ($Substring -replace $FixPattern, '$1')
+            $Message = $Substring
+            foreach ($Pattern in $FixPatterns) {
+              $Message = ($Message -replace $Pattern, '$1')
+            }
+            $Errors += $Message
+            Write-Warning $Errors[-1]
           }
         }
+
+        throw ('Failed to remove user: ' + ($Errors -join ' '))
       }
     }
 
@@ -7433,7 +7531,7 @@ function Rename-MWUser
 
     [Parameter(Mandatory, ValueFromPipelineByPropertyName, Position=1)]
     [ValidateNotNullOrEmpty()]
-    [string]$NewName,
+    [string]$NewUsername,
 
     [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
     [AllowEmptyString()]
@@ -7461,22 +7559,17 @@ function Rename-MWUser
 
     $Body = [ordered]@{
       oldusername      = $Username
-      newusername      = $NewName
+      newusername      = $NewUsername
       reason           = $Reason
-      movepages        = 0
       submit           = 'Submit'
       token            = (Get-MWToken CSRF)
     }
 
     if ($MovePages)
-    {
-      $Body.movepages = 1
-    }
+    { $Body.movepages = 1 } # Omit if false
 
     if ($SuppressRedirect)
-    {
-      $Body.suppressredirect = 1
-    }
+    { $Body.suppressredirect = 1 } # Omit if false
 
     $params = @{
       Uri             = $script:Config.Wiki + 'Special:RenameUser'
@@ -7502,9 +7595,11 @@ function Rename-MWUser
       if ($Response.Content -match '<div class="(success|error)box">([^<]*)?<\/div>')
       {
         if ($Matches[1] -eq 'success') {
-          Write-Host $Matches[2]
+          Write-Host $Matches[2] -ForegroundColor Yellow
         } else {
           Write-Warning $Matches[2]
+
+          throw ('Failed to rename user: ' +  $Matches[2])
         }
       }
     }
@@ -8784,20 +8879,32 @@ function Confirm-MWCurrentUserEmail
         foreach ($Substring in $Substrings)
         {
           $Success = $true
-          Write-Host ($Substring -replace $Pattern, '$1')
+          Write-Host ($Substring -replace $Pattern, '$1') -ForegroundColor Yellow
         }
       }
 
       if (-not $Success)
       {
+        $Errors = @()
         $PatternError = "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)(?=<\/span>)"
-        if ($Substrings = ([regex]$PatternError).Matches($Oneliner)) {
+        if ($Substrings = ([regex]$PatternError).Matches($Oneliner))
+        {
+          $FixPatterns = @(
+            "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)"
+            "<strong>(.+?)</strong>"
+          )
           foreach ($Substring in $Substrings)
           {
-            $FixPattern = "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)"
-            Write-Warning ($Substring -replace $FixPattern, '$1')
+            $Message = $Substring
+            foreach ($Pattern in $FixPatterns) {
+              $Message = ($Message -replace $Pattern, '$1')
+            }
+            $Errors += $Message
+            Write-Warning $Errors[-1]
           }
         }
+
+        throw ('Failed to remove user: ' + ($Errors -join ' '))
       }
     }
 
@@ -8893,20 +9000,32 @@ function Set-MWCurrentUserEmail
         foreach ($Substring in $Substrings)
         {
           $Success = $true
-          Write-Host ($Substring -replace $Pattern, '$1')
+          Write-Host ($Substring -replace $Pattern, '$1') -ForegroundColor Yellow
         }
       }
 
       if (-not $Success)
       {
+        $Errors = @()
         $PatternError = "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)(?=<\/span>)"
-        if ($Substrings = ([regex]$PatternError).Matches($Oneliner)) {
+        if ($Substrings = ([regex]$PatternError).Matches($Oneliner))
+        {
+          $FixPatterns = @(
+            "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)"
+            "<strong>(.+?)</strong>"
+          )
           foreach ($Substring in $Substrings)
           {
-            $FixPattern = "<span class='oo-ui-iconElement-icon oo-ui-icon-error oo-ui-image-error'><\/span><span class='oo-ui-labelElement-label'>(.+?)"
-            Write-Warning ($Substring -replace $FixPattern, '$1')
+            $Message = $Substring
+            foreach ($Pattern in $FixPatterns) {
+              $Message = ($Message -replace $Pattern, '$1')
+            }
+            $Errors += $Message
+            Write-Warning $Errors[-1]
           }
         }
+
+        throw ('Failed to remove user: ' + ($Errors -join ' '))
       }
     }
 
