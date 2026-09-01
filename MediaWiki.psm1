@@ -3387,8 +3387,9 @@ function Find-MWRedirectOrphan
 }
 #endregion
 
-#region Find-MWUnusedImages
-function Find-MWUnusedImages
+#region Find-MWUnusedFiles
+Set-Alias -Name Find-MWUnusedImages -Value Find-MWUnusedFiles
+function Find-MWUnusedFiles
 {
   [CmdletBinding()]
   param
@@ -3421,7 +3422,7 @@ function Get-MWQueryPageList
   param
   (
     [Parameter(Mandatory, ValueFromPipelineByPropertyName, Position=0)]
-    [ValidateSet('Ancientpages', 'BrokenRedirects', 'Deadendpages', 'DisambiguationPageLinks', 'DisambiguationPages', 'DoubleRedirects', 'Fewestrevisions', 'GadgetUsage', 'GloballyWantedFiles', 'LintTemplateErrors', 'ListDuplicatedFiles', 'Listredirects', 'Lonelypages', 'Longpages', 'MediaStatistics', 'MostGloballyLinkedFiles', 'Mostcategories', 'Mostimages', 'Mostinterwikis', 'Mostlinked', 'Mostlinkedcategories', 'Mostlinkedtemplates', 'Mostrevisions', 'OrphanedTimedText', 'Shortpages', 'Uncategorizedcategories', 'Uncategorizedimages', 'Uncategorizedpages', 'Uncategorizedtemplates', 'UnconnectedPages', 'Unusedcategories', 'Unusedimages', 'Unusedtemplates', 'Unwatchedpages', 'Wantedcategories', 'Wantedfiles', 'Wantedpages', 'Wantedtemplates', 'Withoutinterwiki')]
+    [ValidateSet('Ancientpages', 'BrokenRedirects', 'Deadendpages', 'DisambiguationPageLinks', 'DisambiguationPages', 'DoubleRedirects', 'Fewestrevisions', 'GadgetUsage', 'GloballyWantedFiles', 'LintTemplateErrors', 'ListDuplicatedFiles', 'Listredirects', 'Lonelypages', 'Longpages', 'MediaStatistics', 'MostGloballyLinkedFiles', 'Mostcategories', 'Mostimages', 'Mostinterwikis', 'Mostlinked', 'Mostlinkedcategories', 'Mostlinkedtemplates', 'Mostrevisions', 'OrphanedTimedText', 'Shortpages', 'Uncategorizedcategories', 'Uncategorizedimages', 'Uncategorizedpages', 'Uncategorizedtemplates', 'UnconnectedPages', 'Unusedcategories', 'Unusedimages', 'Unusedtemplates', 'Unwatchedpages', 'Wantedcategories', 'Wantedfiles', 'Wantedpages', 'Wantedtemplates', 'Withoutinterwiki', IgnoreCase = $false)]
     [string]$Page,
 
     [uint32]$Offset = 0, # The query offset. The value must be no less than 0.
